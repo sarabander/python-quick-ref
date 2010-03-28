@@ -1,7 +1,320 @@
 \documentclass{article}
+\usepackage{multicol}
+\usepackage{color}
+\usepackage[landscape,top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[scaled]{beramono}
+%\renewcommand*\familydefault{\ttdefault}
+
+\setlength\columnseprule{.4pt}
+\setlength\parindent{0pt}
+\renewcommand{\columnseprulecolor}{\color{blue}}
+
+\newcommand{\py}[2]{
+  \texttt{#1}(\textit{#2})\\
+}
+
+\newcommand{\header}[1]{
+  {\large \textcolor{blue}{\textbf{#1}}}
+}
 
 \begin{document}
 
+{\Huge Python 3.1 Quick Reference}
+
+\hrulefill
+
+\begin{multicols}{4}
+
+\header{Built-in constants}
+
+\texttt{False}\\
+\texttt{True}\\
+\texttt{None}\\
+\texttt{Ellipsis}\\
+\texttt{NotImplemented}
+
+\header{Boolean operations}
+
+\begin{tabular}{ll}
+\texttt{not x}      & \\ 
+\texttt{x or y}     & \\ 
+\texttt{x and y}    & \\ 
+\end{tabular}
+
+\header{Comparisons}
+
+\begin{tabular}{ll}
+\texttt{x < y}  & \\ 
+\texttt{x <= y} & \\ 
+\texttt{x > y}  & \\ 
+\texttt{x >= y} & \\ 
+\texttt{x == y} & \\ 
+\texttt{x != y} & \\ 
+\texttt{x is y} & \\ 
+\texttt{x is not y} & \\ 
+\texttt{x < y < z}  & \\ 
+\end{tabular}
+
+\header{Numeric operations}
+
+\begin{tabular}{ll}
+\texttt{x + y}   & sum \\
+\texttt{x - y}   & subtraction \\
+\texttt{x * y}   & multiplication \\
+\texttt{x / y}   & quotient \\
+\texttt{x // y}  & floored quotient \\
+\texttt{x \% y}  & remainder \\
+\texttt{-x}      & negation \\
+\texttt{+x}      & identity \\
+\texttt{x ** y}  & x to the power y \\
+\end{tabular}
+
+\header{Bit-string Operations}
+
+\begin{tabular}{ll}
+\texttt{x | y}   & and \\
+\texttt{x \& y}  & and \\
+\verb!x ^ y! & exclusive or \\
+\verb!x << n! & bitwise left-shift \\
+\verb!x >> n! & right-shift \\
+\verb+~x+ & bitwise invert (integers)  \\ 
+\end{tabular}
+
+\header{Sequence Operations}
+
+\begin{tabular}{ll}
+\texttt{x in s} & \\
+\texttt{x not in s} & \\
+\texttt{s + t} & concatenation \\
+\texttt{s * n, n * s} & copy s \texttt{n} times \\
+\texttt{s[n]} & nth item of s \\
+\texttt{s[i:j]} & from i to j \\
+\texttt{s[i:j:k]} & from i to j, step k \\
+\end{tabular}
+
+\header{Built-in functions}
+
+\py{abs}{x}
+\py{all}{iter}
+\py{any}{iter}
+\py{ascii}{obj}
+\py{bin}{x}
+\py{bool}{[x]}
+\py{bytearray}{[arg,\,[encoding,\,[errors]]]}
+\py{bytes}{[arg,\,[encoding,\,[errors]]]}
+\py{chr}{i}
+\py{classmethod}{fn}
+%\py{compile}{source,\,filename,\,mode,\,flags=0,\,dont\_inherit=False}
+\py{complex}{real,\,[imag]}
+\py{dict}{[arg]}
+\py{dir}{[object]}
+\py{divmod}{x,\,y}
+\py{enumerate}{iter,\,start=0}
+\py{eval}{source,\,[globals,\,[locals]]}
+\py{filter}{fn,\,iter}
+\py{float}{[x]}
+\py{format}{alue,\,[format\_spec]}
+\py{frozenset}{[iter]}
+\py{getattr}{object,\,name,\,[default]}
+\py{globals}{}
+\py{hasattr}{object,\,name}
+\py{hash}{object}
+\py{help}{[object]}
+\py{hex}{x}
+\py{id}{object}
+\py{input}{[prompt]}
+\py{int}{[number | string,\,[base]]}
+\py{isinstance}{object,\,classinfo}
+\py{issubclass}{class,\,classinfo}
+\py{iter}{object,\,sentinel}
+\py{len}{object}
+\py{list}{[iter]}
+\py{locals}{}
+\py{map}{func,\,iter,\,\ldots}
+\py{max}{iter,\,[args...],\,*,\,[key]}
+\py{memoryview}{obj}
+\py{min}{iter,\,[args...],\,*,\,[key]}
+\py{next}{iterator,\,[default]}
+\py{object}{}
+\py{oct}{number}
+%\py{open}{file,\,mode=’r’,\,buffering=None,\,encoding=None,\,errors=None,\,newline=None,\,closefd=True}
+\py{ord}{c}
+\py{pow}{x,\,y,\,[z]}
+%print([object,\,...],\,*,\,sep=’ ’,\,end=’\n’,\,file=sys.stdout)
+%\py{property}{fget=None,\,fset=None,\,fdel=None,\,doc=None}
+\py{range}{[start,] stop,\,[step]}
+\py{repr}{object}
+\py{reversed}{sequence}
+\py{round}{x,\,[n]}
+\py{set}{iter}
+\py{setattr}{object,\,name,\,value}
+\py{slice}{[start],\,stop,\,[step]}
+\py{sorted}{iter,\,[key],\,[reverse]}
+\py{staticmethod}{unction}
+\py{str}{[object,\,[encoding,\,[errors]]]}
+\py{sum}{terable,\,[start]}
+\py{super}{[type,\,[object-or-type]]}
+\py{tuple}{[iter]}
+\py{type}{object}
+\py{type}{name,\,bases,\,dict}
+\py{vars}{[object]}
+\py{zip}{*iters}
+
+\header{String methods}
+
+\py{capitalize}{}
+\py{center}{width,\,[fillchar]}
+\py{count}{sub,\,[start,\,[end]]}
+\py{decode}{[encoding,\,[errors]]}
+\py{encode}{[encoding[,errors]]}
+\py{endswith}{suffix,\,[start,\,[end]]}
+\py{expandtabs}{[tabsize]}
+\py{find}{sub,\,[start,\,[end]]}
+\py{format}{*args,\,**kwargs}
+\py{index}{sub,\,[start,\,[end]]}
+\py{isalnum}{}
+\py{isalpha}{}
+\py{isdigit}{}
+\py{islower}{}
+\py{isspace}{}
+\py{istitle}{}
+\py{isupper}{}
+\py{join}{iterable}
+\py{ljust}{width,\,[fillchar]}
+\py{lower}{}
+\py{lstrip}{[chars]}
+\py{partition}{sep}
+\py{replace}{old,\,new,\,[count]}
+\py{rfind}{sub [,start [,end]]}
+\py{rindex}{sub,\,[start,\,[end]]}
+\py{rjust}{width,\,[fillchar]}
+\py{rpartition}{sep}
+\py{rsplit}{[sep [,maxsplit]]}
+\py{rstrip}{[chars]}
+\py{split}{[sep,\,[maxsplit]]}
+\py{splitlines}{[keepends]}
+\py{startswith}{prefix,\,[start,\,[end]]}
+\py{strip}{[chars]}
+\py{swapcase}{}
+\py{title}{}
+\py{translate}{table,\,[deletechars]}
+\py{upper}{}
+\py{zfill}{width}
+
+\header{List methods}
+
+\py{append}{}
+\py{extend}{}
+\py{count}{}
+\py{index}{}
+\py{insert}{}
+\py{pop}{}
+\py{remove}{}
+\py{reverse}{}
+\py{sort}{}
+
+\header{Set methods}
+
+\py{add}{elem}
+\py{clear}{}
+\py{copy}{}
+\py{difference}{other,\,\ldots}
+\py{difference\_update}{other,\,\ldots}
+\py{discard}{elem}
+\py{intersection}{other,\,\ldots}
+\py{intersection\_update}{other,\,\ldots}
+\py{isdisjoint}{other}
+\py{issubset}{other}
+\py{issuperset}{other}
+\py{pop}{}
+\py{remove}{elem}
+\py{symmetric\_difference}{other}
+\py{symmetric\_difference\_update}{other}
+\py{union}{other,\,\ldots}
+\py{update}{other,\,\ldots}
+
+\header{Dictionary methods}
+
+\py{clear}{}
+\py{copy}{}
+\py{fromkeys}{seq,\,[value]}
+\py{get}{key,\,[default]}
+\py{items}{}
+%\py{iteritems}{}
+%\py{iterkeys}{}
+%\py{itervalues}{}
+\py{keys}{}
+\py{popitem}{}
+\py{pop}{key,\,[default]}
+\py{setdefault}{key,\,[default]}
+\py{update}{[other]}
+\py{values}{}
+%\py{viewitems}{}
+%\py{viewkeys}{}
+%\py{viewvalues}{}
+
+\header{Float methods}
+
+\py{float.as\_integer\_ratio}{}
+\py{float.hex}{}
+\py{float.fromhex}{s}
+
+\header{Built-in exceptions}
+
+\begin{verbatim}
+BaseException
++-- SystemExit
++-- KeyboardInterrupt
++-- GeneratorExit
++-- Exception
++-- StopIteration
++-- ArithmeticError
+| +-- FloatingPointError
+| +-- OverflowError
+| +-- ZeroDivisionError
++-- AssertionError
++-- AttributeError
++-- BufferError
++-- EnvironmentError
+| +-- IOError
+| +-- OSError
+| +-- WindowsError (Windows)
+| +-- VMSError (VMS)
++-- EOFError
++-- ImportError
++-- LookupError
+| +-- IndexError
+| +-- KeyError
++-- MemoryError
++-- NameError
+| +-- UnboundLocalError
++-- ReferenceError
++-- RuntimeError
+| +-- NotImplementedError
++-- SyntaxError
+| +-- IndentationError
+| +-- TabError
++-- SystemError
++-- TypeError
++-- ValueError
+| +-- UnicodeError
+| +-- UnicodeDecodeError
+| +-- UnicodeEncodeError
+| +-- UnicodeTranslateError
++-- Warning
++-- DeprecationWarning
++-- PendingDeprecationWarning
++-- RuntimeWarning
++-- SyntaxWarning
++-- UserWarning
++-- FutureWarning
++-- ImportWarning
++-- UnicodeWarning
++-- BytesWarning
+\end{verbatim}
+
+\end{multicols}
 \end{document}
 
 %%% Local Variables: 
