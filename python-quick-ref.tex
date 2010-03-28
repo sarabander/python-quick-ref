@@ -1,39 +1,57 @@
 \documentclass{article}
 \usepackage{multicol}
 \usepackage{color}
-\usepackage[landscape,top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{dirtree}
+\usepackage[landscape,top=1cm, bottom=2cm, left=2cm, right=2cm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[scaled]{beramono}
-%\renewcommand*\familydefault{\ttdefault}
+%\usepackage{bera}
+\usepackage{fourier}
+\usepackage{tikz}
 
 \setlength\columnseprule{.4pt}
 \setlength\parindent{0pt}
 \renewcommand{\columnseprulecolor}{\color{blue}}
 
+\pagestyle{empty}
+
+\definecolor{shade}{HTML}{D4D7FE}
+%\renewcommand*\DTstyle{\seriesdefault\tiny}
+
 \newcommand{\py}[2]{
   \texttt{#1}(\textit{#2})\\
 }
 
+\newcommand{\pyc}[1]{
+  \texttt{#1}\\
+}
+
 \newcommand{\header}[1]{
-  {\large \textcolor{blue}{\textbf{#1}}}
-  \vspace*{.5em}
+  \begin{tikzpicture}
+    \node [fill=shade,rounded corners=5pt]
+    {\parbox{.95\linewidth}{\large \textcolor{blue}{\sf \textbf{\raisebox{-15pt}{#1}}}\vspace*{1ex}}
+    };
+  \end{tikzpicture}
+  \par
 }
 
 \begin{document}
 
-{\Huge Python 3.1 Quick Reference}
+\begin{minipage}[b]{0.1\linewidth}
+\includegraphics[scale=.5]{python-logo}
+\end{minipage}
+\hfill
+\begin{minipage}[b]{0.9\linewidth}
+{\Huge \textcolor{blue}{\textsf{\textbf{Python 3.1 Quick Reference}}}} \\
+{\large available at \url{http://genos.mus.br/python}} \\
+\vspace{.8em}
+\end{minipage}
 
 \hrulefill
 
-\begin{multicols}{4}
-
-\header{Built-in constants}
-
-\texttt{False}\\
-\texttt{True}\\
-\texttt{None}\\
-\texttt{Ellipsis}\\
-\texttt{NotImplemented}\\
+\begin{multicols*}{4}
 
 \header{Built-in functions}
 
@@ -103,6 +121,10 @@
 \py{vars}{[object]}
 \py{zip}{*iters}
 
+\header{Built-in constants}
+\texttt{False}, \texttt{True}, \texttt{None}\\
+\texttt{Ellipsis}, \texttt{NotImplemented}
+
 \header{Boolean operations}
 
 \begin{tabular}{ll}
@@ -150,11 +172,31 @@
 \verb+~x+ & bitwise invert (integers)  \\ 
 \end{tabular}
 
+\header{Extended Assignment}
+
+\begin{tabular}{lll}
+\texttt{x += y}   & & \texttt{x /= y}   \\
+\texttt{x \&= y}  & & \verb!x >>= y!    \\
+\texttt{x -= y}   & & \texttt{x \%= y}  \\
+\texttt{x |= y}   & & \verb!x <<= y!    \\
+\texttt{x *= y}   & & \texttt{x **= y}  \\
+\verb!x ^= y!    & & \texttt{x //= y} \\
+\end{tabular}
+
+\header{Sequence Assignment}
+
+\texttt{w = [1, 2, 3, 4]}
+
+\begin{tabular}{ll}
+\texttt{a, *b = w} & \texttt{(1, [2, 3, 4])} \\
+\texttt{a, *b, c = w} & \texttt{(1, [2, 3], 4)} \\
+\end{tabular}
+
 \header{Sequence Operations}
 
 \begin{tabular}{ll}
-\texttt{x in s} & \\
-\texttt{x not in s} & \\
+\texttt{x in s} & membership \\
+\texttt{x not in s} & membership \\
 \texttt{s + t} & concatenation \\
 \texttt{s * n, n * s} & copy s \texttt{n} times \\
 \texttt{s[n]} & nth item of s \\
@@ -162,7 +204,34 @@
 \texttt{s[i:j:k]} & from i to j, step k \\
 \end{tabular}
 
-\par
+\header{Slice examples}
+
+\texttt{s = ['a', 'b', 'c']}
+
+\begin{tabular}{lll}
+\texttt{s[0]} & \texttt{'a'}  & first \\
+\texttt{s[-1]} & \texttt{'c'}  & last \\
+\texttt{s[1:]} & \texttt{['b', 'c']}  & rest \\
+\texttt{s[:-1]} & \texttt{['a', 'b']}  & butlast \\
+\end{tabular}
+
+\header{Float methods}
+
+\py{float.as\_integer\_ratio}{}
+\py{float.hex}{}
+\py{float.fromhex}{s}
+\header{List methods}
+
+\py{append}{obj}
+\py{extend}{iter}
+\py{count}{value}
+\py{index}{value,\,[start,\,[stop]]}
+\py{insert}{pos, obj}
+\py{pop}{[index]}
+\py{remove}{value}
+\py{reverse}{}
+\py{sort}{key=None, reverse=False}
+
 \header{String methods}
 
 \py{capitalize}{}
@@ -204,18 +273,6 @@
 \py{upper}{}
 \py{zfill}{width}
 
-\header{List methods}
-
-\py{append}{obj}
-\py{extend}{iter}
-\py{count}{value}
-\py{index}{value,\,[start,\,[stop]]}
-\py{insert}{pos, obj}
-\py{pop}{[index]}
-\py{remove}{value}
-\py{reverse}{}
-\py{sort}{key=None, reverse=False}
-
 \header{Set methods}
 
 \py{add}{elem}
@@ -255,69 +312,122 @@
 %\py{viewitems}{}
 %\py{viewkeys}{}
 %\py{viewvalues}{}
+\header{File methods}
 
-\header{Float methods}
+\py{close}{}
+\py{flush}{}
+\py{fileno}{}
+\py{isatty}{}
+\py{next}{}
+\py{read}{[size]}
+\py{readline}{[size]}
+\py{readlines}{[sizehint]}
+\py{xreadlines}{}
+\py{seek}{offset, [whence]}
+\py{tell}{}
+\py{truncate}{[size]}
+\py{write}{str}
+\py{writelines}{sequence}
 
-\py{float.as\_integer\_ratio}{}
-\py{float.hex}{}
-\py{float.fromhex}{s}
+\header{From future (python 2.6)}
+
+\texttt{from \_\_future\_\_ import <f>}
+
+\begin{tabular}{ll}
+\texttt{absolute\_import}    & PEP 328\\
+\texttt{division}            & PEP 238\\
+\texttt{print\_function}     & PEP 3105\\
+\texttt{unicode\_literals}   & PEP 3112\\
+\end{tabular}
+
+\header{Keywords (keyword.kwlist)}
+\begin{verbatim}
+False None True and as assert
+break class continue def del in
+elif else except finally for is
+from global if import lambda
+nonlocal not or pass raise
+return try while with yield
+\end{verbatim}
 
 \header{Built-in exceptions}
 
-\begin{verbatim}
-BaseException
-+-- SystemExit
-+-- KeyboardInterrupt
-+-- GeneratorExit
-+-- Exception
-+-- StopIteration
-+-- ArithmeticError
-| +-- FloatingPointError
-| +-- OverflowError
-| +-- ZeroDivisionError
-+-- AssertionError
-+-- AttributeError
-+-- BufferError
-+-- EnvironmentError
-| +-- IOError
-| +-- OSError
-| +-- WindowsError (Windows)
-| +-- VMSError (VMS)
-+-- EOFError
-+-- ImportError
-+-- LookupError
-| +-- IndexError
-| +-- KeyError
-+-- MemoryError
-+-- NameError
-| +-- UnboundLocalError
-+-- ReferenceError
-+-- RuntimeError
-| +-- NotImplementedError
-+-- SyntaxError
-| +-- IndentationError
-| +-- TabError
-+-- SystemError
-+-- TypeError
-+-- ValueError
-| +-- UnicodeError
-| +-- UnicodeDecodeError
-| +-- UnicodeEncodeError
-| +-- UnicodeTranslateError
-+-- Warning
-+-- DeprecationWarning
-+-- PendingDeprecationWarning
-+-- RuntimeWarning
-+-- SyntaxWarning
-+-- UserWarning
-+-- FutureWarning
-+-- ImportWarning
-+-- UnicodeWarning
-+-- BytesWarning
-\end{verbatim}
+\dirtree{%
+.1 BaseException.
+.2 SystemExit.
+.2 KeyboardInterrupt.
+.2 GeneratorExit.
+.2 Exception.
+.2 StopIteration.
+}
 
-\end{multicols}
+\dirtree{%
+.1 BaseException.
+.2 AssertionError.
+.2 AttributeError.
+.2 BufferError.
+.2 ArithmeticError.
+.3 FloatingPointError.
+.3 OverflowError.
+.3 ZeroDivisionError.
+.2 EnvironmentError.
+.3 IOError.
+.3 OSError.
+.3 WindowsError (Windows).
+.3 VMSError (VMS).
+.2 EOFError.
+.2 ImportError.
+.2 LookupError.
+.3 IndexError.
+.3 KeyError.
+.2 MemoryError.
+.2 NameError.
+.3 UnboundLocalError.
+.2 ReferenceError.
+.2 RuntimeError.
+.3 NotImplementedError.
+.2 SyntaxError.
+.3 IndentationError.
+.3 TabError.
+.2 SystemError.
+.2 TypeError.
+.2 ValueError.
+.3 UnicodeError.
+.3 UnicodeDecodeError.
+.3 UnicodeEncodeError.
+.3 UnicodeTranslateError.
+.2 Warning.
+.2 DeprecationWarning.
+.2 PendingDeprecationWarning.
+.2 RuntimeWarning.
+.2 SyntaxWarning.
+.2 UserWarning.
+.2 FutureWarning.
+.2 ImportWarning.
+.2 UnicodeWarning.
+.2 BytesWarning.
+}
+
+\end{multicols*}
 \end{document}
+
+\newpage
+
+\header{The string module}
+
+\pyc{ascii\_letters}
+\pyc{ascii\_lowercase}
+\pyc{ascii\_uppercase}
+\pyc{digits}
+\pyc{hexdigits}
+\pyc{octdigits}
+\pyc{printable}
+\pyc{punctuation}
+\pyc{whitespace}
+\py{format}{}
+\py{capwords}{}
+\py{maketrans}{}
+
 
 %%% Local Variables: 
 %%% mode: latex
