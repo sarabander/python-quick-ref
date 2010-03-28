@@ -16,6 +16,7 @@
 
 \newcommand{\header}[1]{
   {\large \textcolor{blue}{\textbf{#1}}}
+  \vspace*{.5em}
 }
 
 \begin{document}
@@ -32,7 +33,75 @@
 \texttt{True}\\
 \texttt{None}\\
 \texttt{Ellipsis}\\
-\texttt{NotImplemented}
+\texttt{NotImplemented}\\
+
+\header{Built-in functions}
+
+\py{abs}{x}
+\py{all}{iter}
+\py{any}{iter}
+\py{ascii}{obj}
+\py{bin}{x}
+\py{bool}{[x]}
+\py{bytearray}{[arg,\,[encoding,\,[errors]]]}
+\py{bytes}{[arg,\,[encoding,\,[errors]]]}
+\py{chr}{i}
+\py{classmethod}{fn}
+\py{compile}{source,\,filename,\,mode}
+\py{complex}{real,\,[imag]}
+\py{dict}{[arg]}
+\py{dir}{[object]}
+\py{divmod}{x,\,y}
+\py{enumerate}{iter,\,start=0}
+\py{eval}{source,\,[globals,\,[locals]]}
+\py{filter}{fn,\,iter}
+\py{float}{[x]}
+\py{format}{alue,\,[format\_spec]}
+\py{frozenset}{[iter]}
+\py{getattr}{object,\,name,\,[default]}
+\py{globals}{}
+\py{hasattr}{object,\,name}
+\py{hash}{object}
+\py{help}{[object]}
+\py{hex}{x}
+\py{id}{object}
+\py{input}{[prompt]}
+\py{int}{[number | string,\,[base]]}
+\py{isinstance}{object,\,classinfo}
+\py{issubclass}{class,\,classinfo}
+\py{iter}{object,\,sentinel}
+\py{len}{object}
+\py{list}{[iter]}
+\py{locals}{}
+\py{map}{func,\,iter,\,\ldots}
+\py{max}{iter,\,[args...],\,*,\,[key]}
+\py{memoryview}{obj}
+\py{min}{iter,\,[args...],\,*,\,[key]}
+\py{next}{iterator,\,[default]}
+\py{object}{}
+\py{oct}{number}
+\py{open}{file, **keys}
+\py{ord}{c}
+\py{pow}{x,\,y,\,[z]}
+\py{print}{[obj,\,\ldots,\,sep,\,end,\,file]}
+\py{property}{**keys}
+\py{range}{[start,] stop,\,[step]}
+\py{repr}{object}
+\py{reversed}{sequence}
+\py{round}{x,\,[n]}
+\py{set}{iter}
+\py{setattr}{object,\,name,\,value}
+\py{slice}{[start],\,stop,\,[step]}
+\py{sorted}{iter,\,[key],\,[reverse]}
+\py{staticmethod}{unction}
+\py{str}{[object,\,[encoding,\,[errors]]]}
+\py{sum}{terable,\,[start]}
+\py{super}{[type,\,[object-or-type]]}
+\py{tuple}{[iter]}
+\py{type}{object}
+\py{type}{name,\,bases,\,dict}
+\py{vars}{[object]}
+\py{zip}{*iters}
 
 \header{Boolean operations}
 
@@ -93,74 +162,7 @@
 \texttt{s[i:j:k]} & from i to j, step k \\
 \end{tabular}
 
-\header{Built-in functions}
-
-\py{abs}{x}
-\py{all}{iter}
-\py{any}{iter}
-\py{ascii}{obj}
-\py{bin}{x}
-\py{bool}{[x]}
-\py{bytearray}{[arg,\,[encoding,\,[errors]]]}
-\py{bytes}{[arg,\,[encoding,\,[errors]]]}
-\py{chr}{i}
-\py{classmethod}{fn}
-%\py{compile}{source,\,filename,\,mode,\,flags=0,\,dont\_inherit=False}
-\py{complex}{real,\,[imag]}
-\py{dict}{[arg]}
-\py{dir}{[object]}
-\py{divmod}{x,\,y}
-\py{enumerate}{iter,\,start=0}
-\py{eval}{source,\,[globals,\,[locals]]}
-\py{filter}{fn,\,iter}
-\py{float}{[x]}
-\py{format}{alue,\,[format\_spec]}
-\py{frozenset}{[iter]}
-\py{getattr}{object,\,name,\,[default]}
-\py{globals}{}
-\py{hasattr}{object,\,name}
-\py{hash}{object}
-\py{help}{[object]}
-\py{hex}{x}
-\py{id}{object}
-\py{input}{[prompt]}
-\py{int}{[number | string,\,[base]]}
-\py{isinstance}{object,\,classinfo}
-\py{issubclass}{class,\,classinfo}
-\py{iter}{object,\,sentinel}
-\py{len}{object}
-\py{list}{[iter]}
-\py{locals}{}
-\py{map}{func,\,iter,\,\ldots}
-\py{max}{iter,\,[args...],\,*,\,[key]}
-\py{memoryview}{obj}
-\py{min}{iter,\,[args...],\,*,\,[key]}
-\py{next}{iterator,\,[default]}
-\py{object}{}
-\py{oct}{number}
-%\py{open}{file,\,mode=’r’,\,buffering=None,\,encoding=None,\,errors=None,\,newline=None,\,closefd=True}
-\py{ord}{c}
-\py{pow}{x,\,y,\,[z]}
-%print([object,\,...],\,*,\,sep=’ ’,\,end=’\n’,\,file=sys.stdout)
-%\py{property}{fget=None,\,fset=None,\,fdel=None,\,doc=None}
-\py{range}{[start,] stop,\,[step]}
-\py{repr}{object}
-\py{reversed}{sequence}
-\py{round}{x,\,[n]}
-\py{set}{iter}
-\py{setattr}{object,\,name,\,value}
-\py{slice}{[start],\,stop,\,[step]}
-\py{sorted}{iter,\,[key],\,[reverse]}
-\py{staticmethod}{unction}
-\py{str}{[object,\,[encoding,\,[errors]]]}
-\py{sum}{terable,\,[start]}
-\py{super}{[type,\,[object-or-type]]}
-\py{tuple}{[iter]}
-\py{type}{object}
-\py{type}{name,\,bases,\,dict}
-\py{vars}{[object]}
-\py{zip}{*iters}
-
+\par
 \header{String methods}
 
 \py{capitalize}{}
@@ -204,15 +206,15 @@
 
 \header{List methods}
 
-\py{append}{}
-\py{extend}{}
-\py{count}{}
-\py{index}{}
-\py{insert}{}
-\py{pop}{}
-\py{remove}{}
+\py{append}{obj}
+\py{extend}{iter}
+\py{count}{value}
+\py{index}{value,\,[start,\,[stop]]}
+\py{insert}{pos, obj}
+\py{pop}{[index]}
+\py{remove}{value}
 \py{reverse}{}
-\py{sort}{}
+\py{sort}{key=None, reverse=False}
 
 \header{Set methods}
 
