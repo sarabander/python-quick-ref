@@ -1,6 +1,4 @@
-========================
- Python quick reference
-========================
+# Python quick reference #
 
 This is a short cheat sheet for python 3.1. I wanted a quick reference
 for the core language that was short (2 pages tops) and beautiful and
