@@ -1,3 +1,5 @@
+% Pedro Kroger 2010
+
 \documentclass{article}
 \usepackage{multicol}
 \usepackage{color}
@@ -6,14 +8,17 @@
 \usepackage{dirtree}
 \usepackage[landscape,top=1cm, bottom=2cm, left=2cm, right=2cm]{geometry}
 \usepackage[T1]{fontenc}
-\usepackage[scaled]{beramono}
+\usepackage[scaled=0.85]{beramono}
 %\usepackage{bera}
 \usepackage{fourier}
 \usepackage{tikz}
 
 \setlength\columnseprule{.4pt}
 \setlength\parindent{0pt}
-\renewcommand{\columnseprulecolor}{\color{blue}}
+
+\definecolor{pythonblue}{RGB}{54,112,160}
+
+\renewcommand{\columnseprulecolor}{\color{pythonblue}}
 
 \pagestyle{empty}
 
@@ -30,8 +35,8 @@
 
 \newcommand{\header}[1]{
   \begin{tikzpicture}
-    \node [fill=shade,rounded corners=5pt]
-    {\parbox{.95\linewidth}{\large \textcolor{blue}{\sf \textbf{\raisebox{-15pt}{#1}}}\vspace*{1ex}}
+    \node [fill=pythonblue!20,rounded corners=5pt]
+    {\parbox{.95\linewidth}{\large \textcolor{pythonblue}{\sf \textbf{\hspace*{1ex}\raisebox{-15pt}{#1}}}\vspace*{1ex}}
     };
   \end{tikzpicture}
   \par
@@ -40,12 +45,12 @@
 \begin{document}
 
 \begin{minipage}[b]{0.1\linewidth}
-\includegraphics[scale=.5]{python-logo}
+\includegraphics[scale=.64]{python-logo-notext}
 \end{minipage}
 \hfill
 \begin{minipage}[b]{0.9\linewidth}
-{\Huge \textcolor{blue}{\textsf{\textbf{Python 3.1 Quick Reference}}}} \\
-{\large available at \url{http://genos.mus.br/python}} \\
+{\Huge \textcolor{pythonblue}{\textsf{\textbf{Python 3.1 Quick Reference}}}} \\
+{\large available at \url{http://pedrokroger.net/python-quick-reference/}} \\
 \vspace{.8em}
 \end{minipage}
 
