@@ -9,9 +9,9 @@ download it here:
 
 http://github.com/downloads/kroger/python-quick-ref/python-quick-ref.pdf
 
- Forked by sarabander
-======================
 
-I made small adjustments in typesetting and color. Python logo is now
-in vector graphics. Fixed URL. Thanks for sharing this!
+Tanks
+=====
 
+Sarabander made some adjustments in typesetting and color, used a
+vector graphics for the Python logo and fixed the URL (shame on me ;-)
