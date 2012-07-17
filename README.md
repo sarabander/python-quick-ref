@@ -1,5 +1,4 @@
- Python quick reference
-========================
+# Python quick reference
 
 This is a short cheat sheet for python 3.1. I wanted a quick reference
 for the core language that was short (2 pages tops) and beautiful and
@@ -10,8 +9,7 @@ download it here:
 http://github.com/downloads/kroger/python-quick-ref/python-quick-ref.pdf
 
 
-Tanks
-=====
+# Tanks
 
 Sarabander made some adjustments in typesetting and color, used a
-vector graphics for the Python logo and fixed the URL (shame on me ;-)
+vector graphics for the Python logo and fixed the URL.

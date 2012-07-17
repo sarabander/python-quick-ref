@@ -1,0 +1,54 @@
+No genos nos trabalhomos com a seguinte estrutura de diretório:
+
+<projeto>/              <- o nome do seu projeto
+<projeto>/<arquivo>.tex <- o seu arquivo tex
+<projeto>/figs          <- as suas figuras estáticas
+<projeto>/data          <- arquivos .plot e .dat pro gnuplot
+<projeto>/lily          <- arquivos lilypond
+~/lib                   <- essa biblioteca
+~/bib                   <- a bibliografia do genos
+
+Mas é possivel ter outra estrutura desde que os caminhos estejam
+indicados nas respectivas variáveis de ambiente.
+
+É necessário ter um ~/.latexmk como o do exemplo abaixo:
+
+----------------------------------------------------------------------
+LATEX_ENV+= BIBINPUTS=~/bib:
+LATEX_ENV+= BSTINPUTS=~/lib/latex/bib/:
+LATEX_ENV+= TEXINPUTS=:src:config:figs:data:lily:out:~/lib/latex//:~/lib/license//:~/lib/emacs/bbdb/tex/:
+PDFLATEX_ENV+= $(LATEX_ENV)
+
+include ~/lib/make/latex.mk
+include /usr/share/latex-mk/latex.gmk
+----------------------------------------------------------------------
+
+Nenhuma variável de ambiente é definida no latex.mk do genos e
+recomendamos que você defina apenas em um lugar do ~/.latexmk.
+
+Para um projeto que use todos esses componentes, o Makefile
+recomendado, <projeto>/Makefile é:
+ 
+  NAME = <arquivo>
+  USE_PDFLATEX = 1
+  VIEWPDF = evince
+  # OTHER += $(LILY_PDF) # descomente se usar lilyponds
+  # OTHER += $(GNUPLOY_PDF) # descomente se usar gnuplot
+  # OTHER += $(SVG_PDF) # descomente se usar imagens svg
+  # OTHER += $(DIA_PNG) # descomente se usar diagramas dia
+  include ~/.latexmk
+
+E pronto!
+
+Com isso feito, o seu artigo latex será compilado pra pdf com
+"make", será mostrado no evince com "make view", arquivos do gnuplot
+serão plotados em pdf, diagramas svg serão convertidos para pdf,
+diagramas dia serão convertidos pra png e o mundo viverá para sempre
+de mãos dadas em um gramado infinito, e todo dia será natal (bom,
+esses dois últimos são exagero, mas você entende).
+
+Caso tenha alguma dúvida, mande email para genos-users@listas.genos.mus.br
+
+Para ajudar, se quiser converter arquivos FOO em BAR antes de
+incluir no seu artigo, coloque a linha OTHER += $(FOO_BAR) no seu
+Makefile. Se ela não existir aqui, adicione!

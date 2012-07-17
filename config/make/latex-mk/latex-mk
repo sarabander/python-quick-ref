@@ -1,0 +1,822 @@
+#!/bin/sh
+#
+# $Id: latex-mk.in,v 1.40 2010/12/28 07:28:50 dan Exp $
+#
+# Copyright (c) 2002, 2003, 2004, 2005, 2006, 2010 Dan McMahill
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#        This product includes software developed by Dan McMahill
+#  4. The name of the author may not be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+# 
+#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+#  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+#  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#  SUCH DAMAGE.
+#
+
+VERSION=2.1
+
+MAXITERS=${MAXITERS:-5}
+
+BIBTEX=${BIBTEX:-bibtex}
+BIBTEX_FLAGS=${BIBTEX_FLAGS:-}
+LATEX=${LATEX:-latex}
+LATEX_FLAGS=${LATEX_FLAGS:-}
+MAKEIDX=${MAKEIDX:-makeindex}
+MAKEIDX_FLAGS=${MAKEIDX_FLAGS:-}
+MAKEGLS=${MAKEGLS:-makeindex}
+MAKEGLS_FLAGS=${MAKEGLS_FLAGS:-}
+PDFLATEX=${PDFLATEX:-pdflatex}
+PDFLATEX_FLAGS=${PDFLATEX_FLAGS:-}
+TEX2PAGE=${TEX2PAGE:-tex2page}
+TEX2PAGE_FLAGS=${TEX2PAGE_FLAGS:-}
+
+LATEX_MK_LOG=${LOG:-latex-mk.log}
+
+# The environment variable TEXMFOUTPUT is a "special" one.  LaTeX will
+# try to write its output files (including intermediate files) to the
+# current directory.  If the current directory is not writeable, then
+# it will try to use the directory specified by TEXMFOUTPUT.  This
+# is rather important for this script as we monitor certain intermediate
+# files produced by latex and we also need to know where to point programs
+# like BibTeX.  Because of this, we will test right away if we can write
+# to the current directory.
+
+here=${PWD}
+t=latex-mk.test.$$$$
+if touch ${t} 2>/dev/null ; then
+	rm -f ${t}
+	ODIR="."
+else
+	if test -z "${TEXMFOUTPUT}"; then
+		echo "$0:  The current directory: ${here}"
+		echo "is not writeable and TEXMFOUTPUT is not set.  LaTeX can not be run."
+		exit 1
+	else
+		t="${TEXMFOUTPUT}/${t}"
+		if touch ${t} 2>/dev/null ; then
+			rm -f ${t}
+			ODIR="${TEXMFOUTPUT}"
+			if test -z "${TEXINPUTS}" ; then
+				TEXINPUTS="${ODIR}:"
+			else
+				TEXINPUTS="${ODIR}:${TEXINPUTS}:"
+			fi
+			export TEXINPUTS
+			if test -z "${BIBINPUTS}" ; then
+				BIBINPUTS=".:${here}:"
+			else
+				BIBINPUTS=".:${here}:${BIBINPUTS}:"
+			fi
+			export BIBINPUTS
+		else
+			echo "$0:  Neither the current directory: ${here}"
+			echo "     nor the directory specified by TEXMFOUTPUT: ${TEXMFOUTPUT}"
+			echo "     can be written to.  LaTeX can not be run."
+			exit 1
+		fi
+	fi
+fi
+
+echo "${LATEX_MK_LOG}" | grep "^/"
+if test $? -ne 0 ; then
+	LATEX_MK_LOG="${ODIR}/${LATEX_MK_LOG}"
+fi
+
+# list of files to monitor.  If they change, we will rerun 
+# LaTeX again.  These are all suffixes of ${NAME}
+#
+# glo = \glossaryentry commands from \glossary
+# gls = glossary file created by (normally) makeindex from the .glo file
+# ilg = glossary log file created by (normally) makeindex
+# ind = index file created by the makeindex program from the .idx file
+# lof = list of figures
+# lot = list of tables
+# toc = table of contents
+monitor_files="glo gls ind lof lot toc"
+clean_files="idx ilg ${monitor_files}"
+
+sep="------------------------------------"
+
+#######################################################################
+#
+# usage()
+#
+
+usage() {
+cat << EOF
+
+$0
+
+This is a wrapper script used by the LaTeX-Mk
+makefile system for LaTeX documents.  Its purpose is to
+run LaTeX the appropriate number of times to resolve all
+references and page changes associated with resolving
+references.  In addition BibTex and makeindex runs are
+performed as needed.
+
+Although the primary purpose of this script is to be a support
+tool for the LaTeX-Mk system, it may be run standalone.
+
+
+OPTIONS
+
+  -b, --bibtex      :  Force a run of bibtex even if there were no
+		       missing citations.
+
+  --clean           :  Clean up various state files and log files used
+		       by $0.
+
+  --debug           :  Enable verbose debugging output.
+
+  -h, --help        :  Display this help message.
+
+  --ignore-errors   :  Ignores any error codes from the various programs
+		       which are run.
+
+  --pdflatex        :  Use PDFLaTeX instead of LaTeX.
+
+  --testlog logfile :  Log the actions taken by this script to the file
+		       "logfile".  This is used as part of the regression
+		       test suite and is primarily for developer use.
+		       The exact format and contents of the log file are
+		       subject to change without notification.
+
+  --tex2page        :  Use TeX2Page instead of LaTeX.
+
+  --version         :  Displays the version and exits.
+
+ENVIRONMENT VARIABLES
+
+The following environment variables, with defaults shown in [],
+affect the behaviour of $0.
+
+  BIBTEX         [${BIBTEX}]
+  BIBTEX_FLAGS   [${BIBTEX_FLAGS}]
+  LATEX          [${LATEX}]
+  LATEX_FLAGS    [${LATEX_FLAGS}]
+  MAKEIDX        [${MAKEIDX}]
+  MAKEIDX_FLAGS  [${MAKEIDX_FLAGS}]
+  MAKEGLS        [${MAKEGLS}]
+  MAKEGLS_FLAGS  [${MAKEGLS_FLAGS}]
+  PDFLATEX       [${PDFLATEX}]
+  PDFLATEX_FLAGS [${PDFLATEX_FLAGS}]
+  TEX2PAGE       [${TEX2PAGE}]
+  TEX2PAGE_FLAGS [${TEX2PAGE_FLAGS}]
+  TEXMFOUTPUT    [${TEXMFOUTPUT}]
+  LATEX_MK_LOG   [${LOG}]
+
+SEE ALSO
+
+  http://latex-mk.sf.net
+
+EOF
+}
+#
+#######################################################################
+
+ignore_errors=no
+debug=no
+do_clean=no
+force_bibtex=no
+test_log=""
+flags=""
+
+while test -n "$1"
+do
+	case "$1"
+	in
+
+	-b|--bibtex)
+		force_bibtex=yes
+		flags="${flags} bibtex"
+		shift
+		;;
+
+	--clean)
+		do_clean=yes
+		flags="${flags} clean"
+		shift
+		;;
+		
+	--debug)
+		debug=yes
+		echo "$0:  Enabling debug mode"
+		shift
+		;;
+		
+	-h|--help)
+		usage
+		exit 0
+		;;
+
+	--ignore-errors)
+		ignore_errors=yes
+		flags="${flags} ignore_errors"
+		shift
+		;;
+
+	--pdflatex)
+		LATEX=$PDFLATEX
+		LATEX_FLAGS=$PDFLATEX_FLAGS
+		flags="${flags} pdflatex"
+		shift
+		;;
+
+	--testlog)
+		test_log="$2"
+		shift 2
+		;;
+
+	--tex2page)
+		LATEX=$TEX2PAGE
+		LATEX_FLAGS=$TEX2PAGE_FLAGS
+		flags="${flags} tex2page"
+		shift
+		;;
+
+	--version)
+		echo "latex-mk version $VERSION"
+		exit 0
+		;;
+
+	-*)
+		echo "unknown option: $1"
+		exit 1
+		;;
+
+	*)
+		break
+		;;
+
+	esac
+done
+
+#######################################################################
+#
+# log()
+#
+
+first_log=yes
+log() {
+	# Log a message to the test log file if it has been defined.
+	if test -n "$test_log" ; then
+		if test "${first_log}" = "yes" ; then
+			first_log=no
+			rm -f $test_log
+		fi
+		if test ! -f $test_log ; then
+			touch $test_log
+			if test $? -ne 0 ; then
+				echo "$0:  Could not write to test log $test_log" > /dev/stderr
+				exit 1
+			fi
+		fi
+		echo "$*" >> $test_log
+
+	fi
+}
+
+#
+#
+#######################################################################
+
+#######################################################################
+#
+# check_bibunits()
+
+check_bibunits() {
+	msg="Checking if ${NAME} uses the bibunits package..."
+	if grep "bibunits.sty" "$LATEX_MK_LOG" >/dev/null ; then
+	    rslt="yes"
+	    using_bibunits=yes
+	    log "bibunits package detected"
+	else
+	    rslt="yes"
+	    using_bibunits=no
+	fi
+	report "$msg $rslt"
+}
+
+#
+#######################################################################
+
+#######################################################################
+#
+# new_or_changed()
+#
+
+new_or_changed() {
+	f=$1
+	r=1
+	report "Checking for ${f} ..."
+	if [ -f "${f}" ]; then
+		if [ ! -f "${f}.old" ]; then
+			log "\"${f}\" is new"
+			r=0
+		elif cmp -s "${f}.old" "${f}" ; then
+			log "\"${f}\" is not changed"
+		else
+			log "\"${f}\" has changed"
+			r=0
+		fi
+
+		cp -p "${f}" "${f}.old"
+	fi
+
+	return ${r}
+}
+
+#
+#
+#######################################################################
+
+#######################################################################
+#
+# report() -- Like echo but with some decorations added to help
+#             the user know what tool is producing the message
+#
+
+report() {
+cat <<EOF
+LaTeX-Mk: $*
+EOF
+}
+
+#
+#
+#######################################################################
+
+
+INFILE=$1
+
+log "latex-mk invoked with flags = $flags" 
+log "BIBTEX         [${BIBTEX}]"
+log "BIBTEX_FLAGS   [${BIBTEX_FLAGS}]"
+log "LATEX          [${LATEX}]"
+log "LATEX_FLAGS    [${LATEX_FLAGS}]"
+log "MAKEIDX        [${MAKEIDX}]"
+log "MAKEIDX_FLAGS  [${MAKEIDX_FLAGS}]"
+log "MAKEGLS        [${MAKEGLS}]"
+log "MAKEGLS_FLAGS  [${MAKEGLS_FLAGS}]"
+log "PDFLATEX       [${PDFLATEX}]"
+log "PDFLATEX_FLAGS [${PDFLATEX_FLAGS}]"
+log "TEX2PAGE       [${TEX2PAGE}]"
+log "TEX2PAGE_FLAGS [${TEX2PAGE_FLAGS}]"
+log "LATEX_MK_LOG   [${LATEX_MK_LOG}]"
+log "ODIR           [${ODIR}]"
+log ""
+log "TEXMFOUTPUT    [${TEXMFOUTPUT}]"
+log "TEXINPUTS      [${TEXINPUTS}]"
+log "BIBINPUTS      [${BIBINPUTS}]"
+
+if test "X$debug" = "Xyes" ; then
+	echo "$0 debug: command line INFILE=$INFILE"
+fi
+
+if test -z "$INFILE" ; then
+	echo "$0:   You must specify an input file"
+	exit 1
+fi
+
+if test ! -f "${INFILE}" ; then
+    INFILE=${INFILE}.tex
+fi
+if test ! -f "${INFILE}" ; then
+	echo "$0:   Neither ${INFILE} nor ${INFILE}.tex exists"
+	exit 1
+fi
+if test "X$debug" = "Xyes" ; then
+	echo "$0 debug: processed INFILE=$INFILE"
+fi
+
+NAME=`basename "${INFILE}" .tex`
+
+if test "X$debug" = "Xyes" ; then
+	echo "$0 debug: NAME=$NAME"
+fi
+
+if [ "X$do_clean" = "Xyes" ]; then
+	report "Cleaning for project: ${NAME}"
+	# clean up any of the .aux, .blg and .bbl files that may have
+	# been created by the bibunits package.
+	log "Cleaning bibunits.sty leftover files"
+	for sfx in aux blg bbl ; do
+		for f in "${ODIR}"/bu[0-9]*.${sfx} "${ODIR}/bu.${sfx}" 	; do
+			if test -f "${f}" ; then
+				report "Removing bibunits package leftover file ${f}"
+				rm -f "${f}"
+			fi
+		done
+	done
+
+	if test -f "$LATEX_MK_LOG" ; then
+		rm -f "$LATEX_MK_LOG"
+	fi
+	# clean up any of the .old versions of files we were
+	# monitoring
+	for sfx in $clean_files ; do
+		f="${ODIR}/${NAME}.${sfx}.old"
+		log "cleaning ${f}"
+		if test -f "${f}" ; then
+			rm -f "${f}"
+		fi
+	done
+
+	exit 0
+fi
+
+GLSFILE=nomencl.ist
+if test -f "$NAME.ist" ; then
+	GLSFILE="$NAME.ist"
+	if test "X$debug" = "Xyes" ; then
+		echo "$0 debug: Using \"$GLSFILE\" as glossary style file"
+	fi
+fi
+
+
+#######################################################################
+#
+# check_bib()
+#
+
+check_bib() {
+	# run latex.  If it fails, manually remove the .dvi file since
+	# latex won't.  Leaving the .dvi file would confuse 'make' because on the next
+	# invocation, the .dvi file would appear to be up to date already.
+	log "check_bib() called"
+	bibtex_ok=no
+	for w in citation bibdata bibstyle ; do
+		msg="Checking for \\$w in \"${ODIR}/${NAME}.aux\" ..."
+		rslt="no"
+		if grep "^\\\\${w}" "${ODIR}/${NAME}.aux" >/dev/null 2>/dev/null ; then
+			rslt="yes"
+			bibtex_ok=yes
+			log "check_bib():  It is ok to run BibTex (found $w)"
+		fi
+		report "$msg $rslt"
+	done
+	rc=0
+	if test $bibtex_ok = no ; then
+		rc=1
+	fi
+	return $rc
+}
+
+#
+#######################################################################
+
+#######################################################################
+#
+# run_latex()
+#
+
+run_latex() {
+	# run latex.  If it fails, manually remove the .dvi file since
+	# latex won't.  Leaving the .dvi file would confuse 'make' because on the next
+	# invocation, the .dvi file would appear to be up to date already.
+	log "run_latex() called"
+	( ( ( "$LATEX" $LATEX_FLAGS "$INFILE" 2>&1 ; echo $? >&4) | tee "$LATEX_MK_LOG" 1>&3) 4>&1 |  (read a; exit $a)) 3>&1
+	rc=$?
+	if test $rc -ne 0 -a "$ignore_errors" != "yes"  ; then
+		echo "$sep" 
+		echo "$0:  Error:  LaTeX failed" 
+		echo "$sep"
+		rm -f "${ODIR}/${NAME}.dvi" "${ODIR}/${NAME}.pdf"
+		rm -f "$LATEX_MK_LOG"
+		log "run_latex() failed"
+		exit $rc
+	fi
+
+}
+
+#
+#######################################################################
+
+#######################################################################
+#
+# run_bibtex()
+#
+
+run_bibtex() {
+	log "run_bibtex $* called"
+	do_post=yes
+	while test $# -gt 0 ; do
+		case $1 in
+			--skip-post-hook)
+				do_post=no
+				shift
+				;;
+			-*)
+				echo "$0:  INTERNAL ERROR:  run_bibtex $*"
+				exit 1
+				;;
+			*)
+				break
+				;;
+		esac
+	done
+	BIBFILE="${1:-${NAME}}"
+	log "cd \"${ODIR}\" && \"$BIBTEX\" $BIBTEX_FLAGS \"${BIBFILE}\""
+	echo "${sep}"
+	echo "Running BibTeX"
+	echo "cd $\"{ODIR}\" && \"$BIBTEX\" $BIBTEX_FLAGS \"${BIBFILE}\""
+	cd "${ODIR}" && "$BIBTEX" $BIBTEX_FLAGS "${BIBFILE}"
+	rc=$?
+	cd ${here}
+	if test $rc -ne 0 -a "$ignore_errors" != "yes" ; then
+		echo "$sep" 
+		echo "$0:  Error:  BibTeX failed" 
+		echo "$sep"
+		rm -f "${ODIR}/${NAME}.dvi" "${ODIR}/${NAME}.pdf"
+		rm -f "$LATEX_MK_LOG"
+		log "run_bibtex($*) failed"
+		exit $rc
+	fi
+
+	# run the post-bibtex hook if its been defined
+	if test "$do_post" = "yes" -a "X$POST_BIBTEX_HOOK" != "X" ; then
+	    if test -x $POST_BIBTEX_HOOK ; then
+		$POST_BIBTEX_HOOK "$BIBFILE"
+		rc=$?
+		if test $rc -ne 0 ; then
+		    echo "$POST_BIBTEX_HOOK "$BIBFILE" failed"
+		    rm -f "${ODIR}/${NAME}.dvi" "${ODIR}/${NAME}.pdf"
+		    rm -f "$LATEX_MK_LOG"
+		    exit $rc
+		fi
+	    fi
+	fi
+	echo "${sep}"
+}
+
+#######################################################################
+#
+# run_makeindex()
+#
+
+run_makeindex() {
+	log "run_makeindex() called"
+	log "cd \"${ODIR}\" && \"$MAKEIDX\" $MAKEIDX_FLAGS \"$NAME\""
+	echo "${sep}"
+	echo "Running makeindex"
+	echo "cd \"${ODIR}\" && \"$MAKEIDX\" $MAKEIDX_FLAGS \"$NAME\""
+	cd "${ODIR}" && "$MAKEIDX" $MAKEIDX_FLAGS "$NAME"
+	rc=$?
+	cd ${here}
+	if test $rc -ne 0 -a "$ignore_errors" != "yes" ; then
+		echo "$sep" 
+		echo "$0:  Error:  makeindex failed" 
+		echo "$sep"
+		rm -f "${ODIR}/${NAME}.dvi" "${ODIR}/${NAME}.pdf"
+		rm -f "$LATEX_MK_LOG"
+		log "run_makeindex() failed"
+		exit $rc
+	fi
+	echo "${sep}"
+
+}
+
+#######################################################################
+#
+# run_makeglossary()
+#
+
+run_makeglossary() {
+	log "run_makeglossary() called"
+	log "cd \"${ODIR}\" && \"$MAKEGLS\" $MAKEGLS_FLAGS -s \"$GLSFILE\" \"$NAME.glo\" -o \"$NAME.gls\""
+	echo "${sep}"
+	echo "Running `basename $MAKEGLS`"
+	echo "cd \"${ODIR}\" && \"$MAKEGLS\" $MAKEGLS_FLAGS -s \"$GLSFILE\" -o \"$NAME.gls\" \"$NAME.glo\""
+	cd "${ODIR}" && "$MAKEGLS" $MAKEGLS_FLAGS -s "$GLSFILE" -o "$NAME.gls" "$NAME.glo"
+	rc=$?
+	cd ${here}
+	if test $rc -ne 0 -a "$ignore_errors" != "yes" ; then
+		echo "$sep" 
+		echo "$0:  Error:  `basename $MAKEGLS` failed" 
+		echo "$sep"
+		rm -f "${ODIR}/${NAME}.dvi" "${ODIR}/${NAME}.pdf"
+		rm -f "$LATEX_MK_LOG"
+		log "run_makeglossary() failed"
+		exit $rc
+	fi
+	echo "${sep}"
+
+}
+
+#
+#######################################################################
+
+if [ "X$force_bibtex" = "Xyes" ] ; then
+	log "Running with force_bibtex"
+	run_latex
+	run_bibtex
+fi
+
+
+cnt=0
+bibcnt=0
+while test $cnt -lt $MAXITERS ; do
+	log "${sep}"
+	log "Pass #${cnt}"
+	run_latex
+
+	# if the document uses the bibunits package, then we will end up
+	# with a bunch of .bib files and a bunch of .aux files and we will
+	# need to run bibtex
+	check_bibunits
+
+	# if we need to run bibtex, we should end up with something like this:
+	#LaTeX Warning: Citation `foo' on page 1 undefined on input line 2
+	# and
+	#LaTeX Warning: There were undefined references.
+	#
+	# After bibtex is run, we will get one more latex run that has a citation
+	# complaint so we allow one more complaint from latex before declaring
+	# that there is a problem with the citations.  Just in case someone
+	# wants to keep running latex and viewing/printing the results with these
+	# errors present, provide a way to override this.
+	#
+	# Evidently, we may also simply get the following complaint:
+	#
+	# No file foo.bbl
+	#
+	# instead of the previous warning.  This can happen if you only have
+	# something like \nocite{*} in your document instead of \cite{x}
+	# 
+	if test "$using_bibunits" = "yes" -a $cnt -eq 0 ; then
+		for f in "${ODIR}"/*.aux ; do
+			case $f in
+				# FIXME -- the user can potentially change
+				# the file names used here.  Is there a more robust
+				# way?
+				${ODIR}/bu[0-9]*.aux)
+					fb=`basename $f .aux`
+					log "Running bibtex on $f"
+					run_bibtex --skip-post-hook "${fb}"
+					;;
+			esac
+		done
+	fi
+
+	needbib=`grep "Citation.*undefined" "$LATEX_MK_LOG"`
+	if test -n "$needbib" ; then log "Citation undefined" ; fi
+	if test -z "$needbib" ; then
+	    report "Checking for missing .bbl files in latex log ..."
+	    needbib=`grep "No file.*\.bbl" "$LATEX_MK_LOG"`
+	    if test -n "$needbib" ; then log "Missing .bbl" ; fi
+	fi
+	if test -n "$needbib" ; then
+		if test $bibcnt -eq 0 ; then
+			# This is a bit of a dodgy thing here.  If we are using
+			# the bibunits package, we will probably end up here
+			# but we actually don't need to run bibtex on the main
+			# document.  There is also the possiblilty that we still
+			# need to run bibtex.  It all depends on if we have a
+			# non-bibunits bibliography too or not
+			if check_bib ; then
+				echo "$sep"
+				echo "$0:  Running bibtex to resolve citations"
+				echo "$sep"
+				log "BibTex run #1"
+				run_bibtex
+			else
+				log "Skip BibTex run #1 (due to check_bib)"
+			fi
+		elif test $bibcnt -eq 1 ; then
+			echo "$sep"
+			echo "$0:  BibTeX has already been run, but LaTeX is still reporting"
+			echo "    $needbib."
+			echo "    Trying LaTeX one more time...."
+			echo "$sep"
+			log "Try another latex run for the citations"
+		elif test -n "$IGNORE_CITATION_WARNS" ; then
+			echo "$sep"
+			echo "$0:  WARNING:  BibTeX has already been run, but LaTeX is still reporting"
+			echo "$0:  $needbib"
+			echo "$0:  You have set the IGNORE_CITATION_WARNS variable to override this, but"
+			echo "$0:  you probably do have an error in your citations."
+			echo "$sep"
+			log "Could not resolve citations but you are ignoring this"
+		else
+			echo "$sep"
+			echo "$0:  Error:  BibTeX has already been run, but LaTeX is still reporting"
+			echo "$0:  $needbib"
+			echo "$sep"
+			rm -f "$LATEX_MK_LOG"
+			log "Exit with undefined citations"
+			if test "$ignore_errors" = "yes" ; then exit 0 ; else exit 1 ; fi
+		fi
+		bibcnt=`expr $bibcnt + 1`
+	fi
+
+	# Check if we need to run makeindex.  What will happen is the first LaTeX run
+	# generates a .idx file.  Then we run makeindex to operate on the .idx file
+	# and generate a .ind file.  Since we monitor the .ind file all we must do here
+	# is see if a makeindex run is needed.
+	if new_or_changed "${ODIR}/${NAME}.idx" ; then
+		log "\"${ODIR}/${NAME}.idx\" new or changed -> need to run makeindex"
+		run_makeindex
+	fi
+
+	# we shouldn't need this, but lets be sure
+	if test -f "${ODIR}/${NAME}.idx" -a ! -f "${ODIR}/${NAME}.ind" ; then
+		log "\"${ODIR}/${NAME}.idx\" exists but not \"${ODIR}/${NAME}.ind\" -> run makeindex"
+		run_makeindex
+	fi
+
+	if test -f "${ODIR}/${NAME}.glo" && new_or_changed "${ODIR}/${NAME}.glo" ; then
+		log "\"${ODIR}/${NAME}.glo\" new or changed -> need to update glossary"
+		run_makeglossary
+	fi
+
+	# Examine the list of figures, list of tables, table of contents, etc
+	# files because when these change, we need to re-run latex, but
+	# sometimes latex does not tell us this.
+	changed_file=""
+	for sfx in $monitor_files ; do
+		if new_or_changed "${ODIR}/${NAME}.${sfx}" ; then
+			changed_file="${changed_file} \"${ODIR}/${NAME}.${sfx}\""
+			echo "\"${ODIR}/${NAME}.${sfx}\" is new or changed.  LaTeX needs to be re-run"
+		fi
+	done
+
+	# with latex, you might see:
+	#LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right
+	# 
+	# with tex2page, you may get:
+	#Rerun: tex2page week5.tex
+	#
+	rerun=`grep "Rerun" "$LATEX_MK_LOG"`
+	log "rerun        = ${rerun}"
+	log "needbib      = ${needbib}"
+	log "changed_file = ${changed_file}"
+	if test -z "$rerun" -a -z "$needbib" -a -z "$changed_file" ; then
+		log "No rerun is needed"
+		break;
+	fi
+	log "Rerun is needed"
+	echo "$sep"
+	echo "$0:   LaTeX references have changed, another latex run is needed"
+	echo "$sep"
+	cnt=`expr $cnt + 1`
+	if test "X$debug" = "Xyes" ; then echo "$0 debug: incremented cnt=$cnt" ; fi
+done
+
+#LaTeX Warning: There were undefined references.
+undefined=`grep "There were undefined references" "$LATEX_MK_LOG"`
+if test -n "$undefined" ; then
+	log "Finished but still have undefined references."
+	echo "$sep"
+	echo "$0:  There were undefined references.  Please correct this."
+	echo "$0:  I have already made $cnt passes."
+	#LaTeX Warning: Reference `tab:fuse_table' on page 3 undefined on input line 82.
+	grep "Reference.*on page.*undefined" "$LATEX_MK_LOG"
+	echo "$sep"
+fi
+
+#LaTeX Warning: There were multiply-defined labels.
+mult=`grep "multiply-defined labels" "$LATEX_MK_LOG"`
+if test -n "$mult" ; then
+	log "Finished but still have multiply defined labels."
+	echo "$sep"
+	echo "$0:  There were multiply defined labels."
+	echo "$0:  You may wish to correct this"
+	#LaTeX Warning: Label `fig:myfig' multiply defined.
+	grep "multiply defined" "$LATEX_MK_LOG"
+	echo "$sep"
+fi
+
+if test $cnt -eq $MAXITERS ; then
+	log "Reached iteration limit."
+	echo "$sep"
+	echo "$0:   Failed to get LaTeX to converge after $MAXITERS tries"
+	echo "$0:   Please fix the document or try again if you think it"
+	echo "$0:   should be ok"
+	echo "$sep"
+	rm -f "$LATEX_MK_LOG"
+	if test "$ignore_errors" = "yes" ; then exit 0 ; else exit 1 ; fi
+fi
+
+log "Remove log and exit."
+rm -f "$LATEX_MK_LOG"
+exit 0
+

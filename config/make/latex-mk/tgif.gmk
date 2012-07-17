@@ -1,0 +1,159 @@
+# -*- Makefile -*-
+# $Id: tgif.mk.in.in,v 1.15 2006/09/21 13:48:13 dan Exp $
+#
+# Makefile fragment for processing tgif files to produce postscript
+#
+# Copyright (c) 2001, 2002, 2003, 2005, 2006 Dan McMahill
+# All rights reserved.
+#
+# This code is derived from software written by Dan McMahill
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#        This product includes software developed by Dan McMahill
+#  4. The name of the author may not be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+# 
+#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+#  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+#  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#  SUCH DAMAGE.
+#
+
+
+#######################################
+#
+# README:
+#
+# To use this makefile fragment, set the variable:
+#	TGIFSRCS	= the tgif drawing files (.obj files)
+# in your top level Makefile.  You can also specify
+# TGIFDIRS which is a list of directories containing
+# tgif files.  All tgif files in the specified directories
+# are added to TGIFSRCS
+#
+# The following variables may be overridden in your top level Makefile
+#
+#  TGIF		  = the tgif executable
+#  TGIF_FLAGS	  = flags passed to tgif for any exporting 
+#  TGIF_EPS_FLAGS = flags passed to tgif for exporting to eps
+#  TGIF_PDF_FLAGS = flags passed to tgif for exporting to pdf
+#
+#######################################
+
+
+# how to call tgif to convert tgif files to postscript
+TGIF?=		tgif
+TGIF_FLAGS?=		-color -print
+TGIF_EPS_FLAGS?=	-eps
+TGIF_PDF_FLAGS?=	-pdf
+
+#######################################
+#
+# Process TGIFDIRS, adding to TGIFSRCS
+#
+#######################################
+
+
+ifdef TGIFDIRS
+TGIFSRCS+= $(foreach __tmp__,$(TGIFDIRS),$(wildcard $(__tmp__)/*.obj))
+endif
+
+#######################################
+#
+# Process proj_TGIFDIRS, adding to proj_TGIFSRCS
+#
+#######################################
+
+
+define tgifdirs_template
+ifdef $(1)_TGIFDIRS
+$(1)_TGIFSRCS+= $(foreach __tmp2__,$($(1)_TGIFDIRS),$(wildcard $(__tmp2__)/*.obj))
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call tgifdirs_template,$(__tmp__))))
+
+#######################################
+# 
+# Process proj_TGIFSRCS to add to
+# proj_OTHER dependencies
+#
+#######################################
+
+# if we are using pdflatex, then don't bother with the .eps files
+# but create .pdf files instead
+
+ifdef USE_PDFLATEX
+TGIFOBJS?=      $(TGIFSRCS:.obj=.pdf)
+else
+TGIFOBJS?=      $(TGIFSRCS:.obj=.eps)
+endif
+ALLTGIFOBJS+=	$(TGIFOBJS)
+
+
+# note, this had to be done in two steps (create proj_TGIFOBJS,
+# and then add to proj_OTHER and ALLTGIFOBJS) with GNU make 3.80
+# don't really know why.
+define tgifobjs_template
+ifdef $(1)_TGIFSRCS
+ifdef USE_PDFLATEX
+$(1)_TGIFOBJS?=	${$(1)_TGIFSRCS:.obj=.pdf}
+else
+$(1)_TGIFOBJS?=	${$(1)_TGIFSRCS:.obj=.eps}
+endif
+endif
+$(1)_DIST+=		${$(1)_TGIFSRCS}  ${TGIFSRCS}
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call tgifobjs_template,$(__tmp__))))
+
+define tgifdeps_template
+ifdef $(1)_TGIFSRCS
+$(1)_OTHER+=	${$(1)_TGIFOBJS}
+ALLTGIFOBJS+=	${$(1)_TGIFOBJS}
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call tgifdeps_template,$(__tmp__))))
+
+
+#######################################
+# 
+# Add the dependencies
+#
+#######################################
+
+
+OTHER+=	$(TGIFOBJS)
+all::		$(ALLTGIFOBJS)
+
+clean::
+	$(RM) -f $(ALLTGIFOBJS)
+
+#######################################
+# 
+# The suffix rules
+#
+#######################################
+
+.SUFFIXES : .obj .eps .pdf
+
+.obj.eps : 
+	$(TGIF) $(TGIF_FLAGS) $(TGIF_EPS_FLAGS) $*.obj
+
+.obj.pdf : 
+	$(TGIF) $(TGIF_FLAGS) $(TGIF_PDF_FLAGS) $*.obj
+

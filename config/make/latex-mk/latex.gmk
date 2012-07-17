@@ -1,0 +1,883 @@
+# -*- Makefile -*-
+# $Id: latex.mk.in.in,v 1.68 2010/03/28 05:51:58 dan Exp $
+#
+# Makefile fragment for handling LaTeX projects
+#
+# Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007 Dan McMahill
+# All rights reserved.
+#
+# This code is derived from software written by Dan McMahill
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#        This product includes software developed by Dan McMahill
+#  4. The name of the author may not be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+#  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+#  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#  SUCH DAMAGE.
+#
+
+
+#######################################
+#
+# README:
+#
+# To use this makefile fragment, set the variable:
+#	NAME	= Top level project name.  Your top level LaTeX
+#		  file should be called $(NAME).tex
+#
+#	TEXSRCS	= Additional LaTeX input files (.tex)
+#
+# and add the line:
+#	.include "latex.mk"
+# in your top level Makefile
+#
+# The following variables may be overridden in your top level Makefile
+#
+#  BIBTEX	= the BibTeX executable
+#  BIBEX_FLAGS	= flags passed to the BibTeX executable
+#  CONVERT      = the 'convert' program which is part of ImageMagick
+#  DVIPDFM      = the dvipdfm executable
+#  DVIPDFM_ENV  = environment variables set when running the dvipdfm executable
+#  DVIPDFM_FLAGS= flags passed to the dvipdfm executable
+#  DVIPS	= the dvips executable
+#  DVIPS_ENV    = environment variables set when running the dvips executable
+#  DVIPS_FLAGS	= flags passed to the dvips executable
+#  GZIP		= gzip program
+#  GV		= a postscript previewer executable
+#  GV_FLAGS	= flags passed to the postscript previewer executable
+#  JPG2EPS      = program and flags used to convert JPEG files to EPS
+#  LATEX	= the LaTeX executable
+#  LATEX_ENV	= environment variables set when running the LaTeX executable
+#  LATEX_FLAGS	= flags passed to the LaTeX executable
+#  LATEX2HTML   = LaTeX2HTML executable
+#  LATEX2HTML_ENV
+#               = environment variables set when running LATEX2HTML
+#  LATEX2HTML_FLAGS
+#               = flags passed to LATEX2HTML
+#  LATEX2RTF    = LaTeX2RTF executable
+#  LATEX2RTF_ENV
+#               = environment variables set when running LATEX2RTF
+#  LATEX2RTF_FLAGS
+#               = flags passed to LATEX2RTF
+#  LPR		= executable to print postscript files
+#  LPR_FLAGS	= flags passed to the executable to print postscript files
+#  MAKEIDX      = the makeindex executable
+#  MAKEIDX_FLAGS= flags passed to the makeindex executable
+#  MAKEGLS      = executable to create glossary
+#  MAKEGLS_FLAGS= flags passed to the executable to create glossary
+#  PDFLATEX     = pdflatex executable
+#  PDFLATEX_ENV = environment variables set when running the PDFLaTeX executable
+#  PDFLATEX_FLAGS= flags passed to the PDFLaTeX executable
+#  PNG2EPS      = program and flags used to convert PNG files to EPS
+#  PS2PDF	= ps2pdf executable
+#  PS2PDF_FLAGS	= flags passed to the ps2pdf executable
+#  TAR          = tape archiver program
+#  VIEWPDF      = PDF viewer
+#  VIEWPDF_FLAGS= PDF viewer flags
+#  XDVI		= a .dvi previewer executable
+#  XDVI_FLAGS	= flags passed to the .dvi previewer executable
+#
+#  USE_DVIPDFM  = set to use dvipdfm to create pdf files from dvi
+#                 instead of using dvips and ps2pdf
+#  USE_PDFLATEX = set to use pdflatex to create pdf files from .tex
+#                 files instead of using latex, dvips and ps2pdf
+#
+#######################################
+
+# figure out the name of the Makefile.  We'll need this to include
+# in the tar file created as part of the 'dist' target
+MAKEFILE:=	$(word 1,${MAKEFILE_LIST})
+
+MAKECONF?=	/usr/local/etc/latex-gmk.conf
+USER_MAKECONF?=	${HOME}/.latex-gmk.conf
+
+
+_CONFS= $(wildcard ${MAKECONF})
+_CONFS+=        $(wildcard ${USER_MAKECONF})
+include ${_CONFS}
+
+# Make sure we set at least 1 way for creating html files
+ifndef USE_HEVEA
+ifndef USE_TEX2PAGE
+USE_LATEX2HTML=	YES
+endif
+endif
+
+# The location of the latex-mk .mk and .gmk files
+# we do this instead of hard coding so the package
+# can be tested before installation by setting this
+# variable in a test config file
+
+AWK?=		/usr/bin/awk
+BIBTEX?=	bibtex
+CONVERT?=	convert
+DVIPDFM?=	dvipdfm
+DVIPDFM_ENV?=
+DVIPDFM_FLAGS+=
+DVIPDFM_LANDSCAPE_FLAGS?=	-l
+DVIPS?=		dvips
+DVIPS_ENV?=
+DVIPS_FLAGS+=	-j0
+DVIPS_LANDSCAPE_FLAGS?=	-t landscape
+ECHO?=		/bin/echo
+ENV_PROG?=	/usr/bin/env
+FALSE?=		/usr/bin/false
+FIND?=		/usr/bin/find
+GREP?=		/usr/bin/grep
+GV?=		gv
+GV_FLAGS?=
+GV_LANDSCAPE_FLAGS?=	-landscape
+GZCAT?=		/usr/bin/gzcat
+GZIP?=		/usr/bin/gzip
+HACHA?=		hacha
+HACHA_ENV?=
+HACHA_FLAGS?=
+HEVEA?=		hevea
+HEVEA_ENV?=
+HEVEA_FLAGS?=	-fix
+IMAGEN?=	imagen
+JPG2EPS?=	${CONVERT}
+LATEX_MK?=	/usr/local/bin/latex-mk
+LATEX_MK_FLAGS?=
+LATEX?=		latex
+LATEX_ENV?=
+LATEX2HTML?=	latex2html
+LATEX2HTML_ENV?=
+LATEX2HTML_FLAGS?=-image_type png -local_icons -show_section_numbers
+LATEX2RTF?=	latex2rtf
+LATEX2RTF_ENV?=
+LATEX2RTF_FLAGS?=
+LPR?=		/usr/bin/lpr
+LPR_FLAGS?=
+MAKEIDX?=	makeindex
+MAKEIDX_FLAGS?=
+MAKEGLS?=	makeindex
+MAKEGLS_FLAGS?=
+PDFLATEX?=	pdflatex
+PDFLATEX_ENV?=
+PDFLATEX_FLAGS?=
+PNG2EPS?=	${CONVERT}
+POST_BIBTEX_HOOK?=
+RM?=		/bin/rm
+RMDIR?=		/bin/rmdir
+PS2PDF?=	ps2pdf
+PS2PDF_FLAGS?=
+TAR?=		/usr/bin/tar
+TEX2PAGE?=	tex2page
+TEX2PAGE_ENV?=
+TEX2PAGE_FLAGS?=
+XDVI?=		xdvi
+XDVI_FLAGS?=
+XDVI_LANDSCAPE_FLAGS?=	-paper usr
+VIEWPDF?=	${GV}
+VIEWPDF_FLAGS?=	${GV_FLAGS}
+VIEWPDF_LANDSCAPE_FLAGS?=	${GV_LANDSCAPE_FLAGS}
+
+
+DRAFT_STAMP_PS?=	draft_stamp.ps
+DATED_DRAFT_PS?=	dated_draft.ps
+
+.PHONY: default
+default: all
+
+.MAIN: all
+.PHONY: all
+all:: view-all
+
+ifdef LANDSCAPE
+DVIPS_FLAGS+=	${DVIPS_LANDSCAPE_FLAGS}
+DVIPDFM_FLAGS+=	${DVIPDFM_LANDSCAPE_FLAGS}
+GV_FLAGS+=	${GV_LANDSCAPE_FLAGS}
+XDVI_FLAGS+=	${XDVI_LANDSCAPE_FLAGS}
+VIEWPDF_FLAGS+=	${VIEWPDF_LANDSCAPE_FLAGS}
+endif
+
+
+REAL_LATEX_ENV+=	LATEX=${LATEX}
+REAL_LATEX_ENV+=	LATEX_FLAGS=${LATEX_FLAGS}
+REAL_LATEX_ENV+=	BIBTEX=${BIBTEX}
+REAL_LATEX_ENV+=	BIBTEX_FLAGS=${BIBTEX_FLAGS}
+REAL_LATEX_ENV+=	MAKEIDX=${MAKEIDX}
+REAL_LATEX_ENV+=	MAKEIDX_FLAGS=${MAKEIDX_FLAGS}
+REAL_LATEX_ENV+=	MAKEGLS=${MAKEGLS}
+REAL_LATEX_ENV+=	MAKEGLS_FLAGS=${MAKEGLS_FLAGS}
+REAL_LATEX_ENV+=	POST_BIBTEX_HOOK=${POST_BIBTEX_HOOK}
+REAL_LATEX_ENV+=	${LATEX_ENV}
+
+REAL_PDFLATEX_ENV+=	PDFLATEX=${PDFLATEX}
+REAL_PDFLATEX_ENV+=	PDFLATEX_FLAGS=${PDFLATEX_FLAGS}
+REAL_PDFLATEX_ENV+=	BIBTEX=${BIBTEX}
+REAL_PDFLATEX_ENV+=	BIBTEX_FLAGS=${BIBTEX_FLAGS}
+REAL_PDFLATEX_ENV+=	MAKEIDX=${MAKEIDX}
+REAL_PDFLATEX_ENV+=	MAKEIDX_FLAGS=${MAKEIDX_FLAGS}
+REAL_PDFLATEX_ENV+=	MAKEGLS=${MAKEGLS}
+REAL_PDFLATEX_ENV+=	MAKEGLS_FLAGS=${MAKEGLS_FLAGS}
+REAL_PDFLATEX_ENV+=	POST_BIBTEX_HOOK=${POST_BIBTEX_HOOK}
+REAL_PDFLATEX_ENV+=	${PDFLATEX_ENV}
+
+REAL_TEX2PAGE_ENV+=	TEX2PAGE=${TEX2PAGE}
+REAL_TEX2PAGE_ENV+=	TEX2PAGE_FLAGS=${TEX2PAGE_FLAGS}
+REAL_TEX2PAGE_ENV+=	BIBTEX=${BIBTEX}
+REAL_TEX2PAGE_ENV+=	BIBTEX_FLAGS=${BIBTEX_FLAGS}
+REAL_TEX2PAGE_ENV+=	MAKEIDX=${MAKEIDX}
+REAL_TEX2PAGE_ENV+=	MAKEIDX_FLAGS=${MAKEIDX_FLAGS}
+REAL_TEX2PAGE_ENV+=	MAKEGLS=${MAKEGLS}
+REAL_TEX2PAGE_ENV+=	MAKEGLS_FLAGS=${MAKEGLS_FLAGS}
+REAL_TEX2PAGE_ENV+=	POST_BIBTEX_HOOK=${POST_BIBTEX_HOOK}
+REAL_TEX2PAGE_ENV+=	${TEX2PAGE_ENV}
+
+# Include other .mk files often times used with LaTeX
+
+#######################################
+#
+# Check for lgrind
+#
+#######################################
+
+# Check for LGRINDSRCS and LGRINDDIRS
+
+
+ifdef LGRINDSRCS
+_USE_LGRIND_MK+=	YES
+endif
+ifdef LGRINDDIRS
+_USE_LGRIND_MK+=	YES
+endif
+
+# Check for proj_LGRINDSRCS and proj_LGRINDDIRS
+
+
+
+define add_lgrind_mk_template
+ifdef $(1)_LGRINDSRCS
+_USE_LGRIND_MK=	YES
+endif
+ifdef $(1)_LGRINDDIRS
+_USE_LGRIND_MK=	YES
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call add_lgrind_mk_template,$(__tmp__))))
+
+# pull in lgrind.[g]mk if needed
+
+ifdef _USE_LGRIND_MK
+include lgrind.gmk
+endif
+
+#######################################
+#
+# Check for METAPOST
+#
+#######################################
+
+# Check for MPOSTSRCS and MPOSTDIRS
+
+
+ifdef MPOSTSRCS
+_USE_MPOST_MK+=	YES
+endif
+ifdef MPOSTDIRS
+_USE_MPOST_MK+=	YES
+endif
+
+# Check for proj_MPOSTSRCS and proj_MPOSTDIRS
+
+
+
+define add_mpost_mk_template
+ifdef $(1)_MPOSTSRCS
+_USE_MPOST_MK=	YES
+endif
+ifdef $(1)_MPOSTDIRS
+_USE_MPOST_MK=	YES
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call add_mpost_mk_template,$(__tmp__))))
+
+# pull in mpost.[g]mk if needed
+
+ifdef _USE_MPOST_MK
+include mpost.gmk
+endif
+
+#######################################
+#
+# Check for tgif
+#
+#######################################
+
+# Check for TGIFSRCS and TGIFDIRS
+
+
+ifdef TGIFSRCS
+_USE_TGIF_MK+=	YES
+endif
+ifdef TGIFDIRS
+_USE_TGIF_MK+=	YES
+endif
+
+# Check for proj_TGIFSRCS and proj_TGIFDIRS
+
+
+
+define add_tgif_mk_template
+ifdef $(1)_TGIFSRCS
+_USE_TGIF_MK=	YES
+endif
+ifdef $(1)_TGIFDIRS
+_USE_TGIF_MK=	YES
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call add_tgif_mk_template,$(__tmp__))))
+
+# pull in tgif.[g]mk if needed
+
+ifdef _USE_TGIF_MK
+include tgif.gmk
+endif
+
+#######################################
+#
+# Check for xfig
+#
+#######################################
+
+# Check for XFIGSRCS and XFIGDIRS
+
+
+ifdef XFIGSRCS
+_USE_XFIG_MK+=	YES
+endif
+ifdef XFIGDIRS
+_USE_XFIG_MK+=	YES
+endif
+
+# Check for proj_XFIGSRCS and proj_XFIGDIRS
+
+
+
+define add_xfig_mk_template
+ifdef $(1)_XFIGSRCS
+_USE_XFIG_MK=	YES
+endif
+ifdef $(1)_XFIGDIRS
+_USE_XFIG_MK=	YES
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call add_xfig_mk_template,$(__tmp__))))
+
+# pull in xfig.[g]mk if needed
+
+ifdef _USE_XFIG_MK
+include xfig.gmk
+endif
+
+#######################################
+#
+# Targets
+#
+#######################################
+
+#######################################
+# target:  view_<proj>
+#######################################
+
+
+define view_template
+.PHONY: view_$(1)
+ifdef USE_PDFLATEX
+view_$(1): viewpdf_$(1)
+else
+view_$(1): $(1).dvi
+	$(XDVI) $(XDVI_FLAGS) $(1).dvi
+endif
+ALLVIEW+= view_$(1)
+DEFAULTVIEW?=	view_$(1)
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call view_template,$(__tmp__))))
+
+#######################################
+# target:  viewps_<proj>
+#######################################
+
+
+define viewps_template
+.PHONY: viewps_$(1)
+viewps_$(1): $(1).ps
+	$(GV) $(GV_FLAGS)  $(1).ps
+DEFAULTVIEWPS?=	viewps_$(1)
+ALLVIEWPS+=	viewps_$(1)
+.PHONY: viewps_$(1)-draft
+viewps_$(1)-draft: $(1)-draft.ps
+	$(GV) $(GV_FLAGS)  $(1)-draft.ps
+DEFAULTVIEWPS_DRAFT?=	viewps_$(1)-draft
+ALLVIEWPS_DRAFT+=	viewps_$(1)-draft
+$(1)-draft.ps: $(1).dvi ${DATED_DRAFT_PS}
+	sed "s;DATE;`date`;g" ${DATED_DRAFT_PS} > ${DRAFT_STAMP_PS}
+	${ENV_PROG} ${DVIPS_ENV} $(DVIPS) -h ${DRAFT_STAMP_PS} ${$*_DVIPS_FLAGS} $(DVIPS_FLAGS) -o $(1)-draft.ps $(1).dvi
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call viewps_template,$(__tmp__))))
+
+#######################################
+# target:  viewpdf_<proj>
+#######################################
+
+
+define viewpdf_template
+.PHONY: viewpdf_$(1)
+viewpdf_$(1): $(1).pdf
+	$(VIEWPDF) $(VIEWPDF_FLAGS)  $(1).pdf
+DEFAULTVIEWPDF?=	viewpdf_$(1)
+ALLVIEWPDF+=	viewpdf_$(1)
+.PHONY: viewpdf_$(1)-draft
+viewpdf_$(1)-draft: $(1)-draft.pdf
+	$(VIEWPDF) $(VIEWPDF_FLAGS)  $(1)-draft.pdf
+DEFAULTVIEWPDF_DRAFT?=	viewpdf_$(1)-draft
+ALLVIEWPDF_DRAFT+=	viewpdf_$(1)-draft
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call viewpdf_template,$(__tmp__))))
+
+#######################################
+# target:  print_<proj>
+#######################################
+
+
+
+define print_template
+.PHONY: print_$(1)
+print_$(1): $(1).ps
+	$(LPR) $(LPR_FLAGS) $(1).ps
+DEFAULTPRINT?=	print_$(1)
+ALLPRINT+=	print_$(1)
+.PHONY: print_$(1)-draft
+print_$(1)-draft: $(1)-draft.ps
+	$(LPR) $(LPR_FLAGS) $(1)-draft.ps
+DEFAULTPRINT_DRAFT?=	print_$(1)-draft
+ALLPRINT_DRAFT+=	print_$(1)-draft
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call print_template,$(__tmp__))))
+
+#######################################
+
+ALLTEXSRCS=	${TEXSRCS}
+ALLBIBTEXSRCS=	${BIBTEXSRCS}
+
+#######################################
+#
+# master name for the distfile
+#
+#######################################
+
+
+define distname_template
+ifdef ALLNAME
+ALLNAME:=       ${ALLNAME}_$(1)
+else
+ALLNAME=        $(1)
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call distname_template,$(__tmp__))))
+
+ifneq (${ALLNAME}, ${NAME})
+dist:	${ALLNAME}.tar.gz
+${ALLNAME}.tar.gz: ${NAME:=.tar.gz}
+	${RM} -fr ${ALLNAME}
+	mkdir ${ALLNAME}
+	for f in ${NAME:=.tar.gz} ; do \
+		${GZCAT} $$f | (cd ${ALLNAME} && ${TAR} xpf -) ; \
+	done
+	${TAR} cf - ${ALLNAME} | ${GZIP} > $@
+	${RM} -fr ${ALLNAME}
+	@${ECHO} "******* Distfile left in ${ALLNAME}.tar.gz *******"
+endif
+
+#######################################
+#
+# add the dependencies for each documents .dvi file
+#
+#######################################
+
+
+define dvideps_template
+$(1).dvi:	$(1).tex ${TEXSRCS} ${$(1)_TEXSRCS} ${OTHER} ${$(1)_OTHER}
+ifneq ($(strip $(BIBTEXSRCS)$($(1)_BIBTEXSRCS)),)
+$(1).dvi:		$(1).bib-stamp
+$(1).html-stamp:	$(1).bib-stamp
+endif
+ifdef USE_PDFLATEX
+$(1).pdf:	$(1).tex ${TEXSRCS} ${$(1)_TEXSRCS} ${OTHER} ${$(1)_OTHER}
+ifneq ($(strip $(BIBTEXSRCS)$($(1)_BIBTEXSRCS)),)
+$(1).pdf:		$(1).bib-stamp
+endif
+endif
+$(1).html-stamp:	$(1).tex ${TEXSRCS} ${$(1)_TEXSRCS} ${OTHER} ${$(1)_OTHER}
+$(1).bib-stamp:	${BIBTEXSRCS} ${$(1)_BIBTEXSRCS}
+ifdef USE_PDFLATEX
+	$(ENV_PROG) $(REAL_PDFLATEX_ENV) $(LATEX_MK) $(LATEX_MK_FLAGS) --pdflatex --bibtex $(1).tex
+else
+	$(ENV_PROG) $(REAL_LATEX_ENV) $(LATEX_MK) $(LATEX_MK_FLAGS) --bibtex $(1).tex
+endif
+	touch $(1).bib-stamp
+
+ALLTEXSRCS+=	$(1).tex ${$(1)_TEXSRCS}
+ALLBIBTEXSRCS+=	${$(1)_BIBTEXSRCS}
+dist:	$(1).tar.gz
+dvi:	$(1).dvi
+html:	$(1).html-stamp
+# latex2html needs latex to run first because it makes use of the
+# .aux file.  It seems that tex2page and hevea do not require this.
+ifdef USE_LATEX2HTML
+$(1).html-stamp:	$(1).dvi
+endif
+.PHONY: $(1).html
+$(1).html:	$(1).html-stamp
+ps:	$(1).ps
+pdf:	$(1).pdf
+ps-draft:	$(1)-draft.ps
+pdf-draft:	$(1)-draft.pdf
+$(1).rtf:	$(1).dvi
+rtf:	$(1).rtf
+clean::
+	if [ -f $(1).www_files ]; then  \
+		for f in `${AWK} '{print $$2}' $(1).www_files` ; do \
+			if [ -f $$$$f ]; then ${RM} -f $$$$f ; fi ;\
+		done ;\
+	fi
+	${RM} -f $(1).www_files
+ifdef USE_LATEX2HTML
+	${RM} -f $(1).html_dir/images.aux
+	${RM} -f $(1).html_dir/images.bbl
+	${RM} -f $(1).html_dir/images.log
+	${RM} -f $(1).html_dir/images.out
+	${RM} -f $(1).html_dir/images.tex
+endif
+	if [ -d $(1).html_dir ] ; then ${RMDIR} $(1).html_dir ; fi
+
+# And add dependencies for a source tarball
+$(1)_DIST+=	$(1).tex ${TEXSRCS} ${$(1)_TEXSRCS} ${BIBTEXSRCS} ${$(1)_BIBTEXSRCS} ${OTHER} ${$(1)_OTHER} ${MAKEFILE} ${$(1)_EXTRA_DIST} ${EXTRA_DIST}
+
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call dvideps_template,$(__tmp__))))
+
+define dist_template
+ALL_DIST+=	$($(1)_DIST)
+
+$(1).tar.gz: $($(1)_DIST)
+	${TAR} cf - ${$(1)_DIST} | ${GZIP} > $(1).tar.gz
+	@${ECHO} "******* Distfile left in $(1).tar.gz *******"
+
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call dist_template,$(__tmp__))))
+
+#######################################
+# target:  view, view-all
+#######################################
+
+.PHONY: view
+view: ${DEFAULTVIEW}
+.PHONY: view-all
+view-all: ${ALLVIEW}
+
+
+#######################################
+# target:  viewps, viewps-all
+#######################################
+
+.PHONY: viewps
+viewps: ${DEFAULTVIEWPS}
+.PHONY: viewps-all
+viewps-all: ${ALLVIEWPS}
+
+#######################################
+# target:  viewpdf, viewpdf-all
+#######################################
+
+.PHONY: viewpdf
+viewpdf: ${DEFAULTVIEWPDF}
+.PHONY: viewpdf-all
+viewpdf-all: ${ALLVIEWPDF}
+
+#######################################
+# target:  viewps-draft, viewps-all-draft
+#######################################
+
+.PHONY: viewps-draft
+viewps-draft: ${DEFAULTVIEWPS_DRAFT}
+.PHONY: viewps-all-draft
+viewps-all-draft: ${ALLVIEWPS_DRAFT}
+
+#######################################
+# target:  viewpdf-draft, viewpdf-all-draft
+#######################################
+
+.PHONY: viewpdf-draft
+viewpdf-draft: ${DEFAULTVIEWPDF_DRAFT}
+.PHONY: viewpdf-all-draft
+viewpdf-all-draft: ${ALLVIEWPDF_DRAFT}
+
+#######################################
+# target:  print, print-all
+#######################################
+
+.PHONY: print
+print: ${DEFAULTPRINT}
+.PHONY: print-all
+print-all: ${ALLPRINT}
+
+#######################################
+# target:  print-draft, print-all-draft
+#######################################
+
+.PHONY: print-draft
+print-draft: ${DEFAULTPRINT_DRAFT}
+.PHONY: print-all-draft
+print-all-draft: ${ALLPRINT_DRAFT}
+
+#######################################
+#
+#######################################
+
+.SUFFIXES : .tex .dvi .ps .pdf .rtf .html-stamp .png .jpg .eps
+
+ifdef IGNORE_LATEX_ERRORS
+LATEX_MK_FLAGS+=	--ignore-errors
+endif
+
+#######################################
+#
+# Graphic file conversions
+#
+#######################################
+.jpg.eps :
+	$(JPG2EPS) $< $@
+
+.png.eps :
+	$(PNG2EPS) $< $@
+
+#######################################
+#
+# Distribution output (tarfile)
+#
+#######################################
+.PHONY: dist
+
+#######################################
+#
+# DVI Output (latex)
+#
+#######################################
+.PHONY: dvi
+.tex.dvi :
+	$(ENV_PROG) $(REAL_LATEX_ENV) $(LATEX_MK) $(LATEX_MK_FLAGS) $<
+
+#######################################
+#
+# HTML Output (latex2html or HeVeA)
+#
+#######################################
+
+# note:  we have to use a time stamp file here to keep track of what files
+# get created by the html conversion.  Neither latex2html nor hevea provide
+# a convenient way to get a list of files to clean.  In addition, hevea
+# does not currently provide a DESTDIR type functionality which is needed
+# for dealing with multiple top level documents.
+
+
+.PHONY: html
+.tex.html-stamp :
+	touch $@1
+ifdef USE_LATEX2HTML
+	@${ECHO} LaTeX-Mk:  Creating HTML output using latex2html
+	$(ENV_PROG) $(LATEX2HTML_ENV) $(LATEX2HTML) $(LATEX2HTML_FLAGS) -mkdir -dir $*.html_dir $<
+else
+ifdef USE_TEX2PAGE
+	@${ECHO} LaTeX-Mk:  Creating HTML output using tex2page
+	${ECHO} "$*.html_dir" > $*.hdir
+	$(ENV_PROG) $(REAL_TEX2PAGE_ENV) $(LATEX_MK) --tex2page $(LATEX_MK_FLAGS) $<
+else
+ifdef USE_HEVEA
+	@${ECHO} LaTeX-Mk:  Creating HTML output using HeVeA
+	mkdir -p $*.html_dir
+	-$(ENV_PROG) $(HEVEA_ENV) $(HEVEA) $(HEVEA_FLAGS) $<
+	-$(ENV_PROG) $(HEVEA_ENV) ${IMAGEN}  `basename $< .tex`
+	-$(ENV_PROG) $(HEVEA_ENV) $(HEVEA) $(HEVEA_FLAGS) $<
+endif
+endif
+endif
+	if [ ! -f $*.www_files ]; then touch $*.www_files ; fi
+	for f in `${FIND} . -type f \( -name \*.html -o -name \*.htm -o -name \*.gif \
+		-o -name \*.png -o -name \*.css -o -name \*.pl -o -name WARNINGS \
+		-o -name \*.scm -o -name \*.hlog \) \
+		-newer $@1 -print` ; do \
+		fn=`basename $$f` ; \
+		if ${GREP} "^$$f " $*.www_files >/dev/null ; then \
+			echo "$$f already recorded" ; \
+		else \
+			echo "recording file $$f ($*.html_dir/$$fn)" ; \
+			echo "$$f $*.html_dir/$$fn" >> $*.www_files ; \
+		fi ;\
+	done
+ifdef USE_TEX2PAGE
+	for f in `${FIND} . -type f \( -name \*-Z-G-\*.tex -o -name \*-Z-G-\*.aux \
+		-o -name \*-Z-G-\*.log -o -name \*-Z-G-\*.dvi -o -name \*-Z-G-\*.ps \
+		-o -name .Z\*.tex \) -newer $@1 -print` ; do \
+		fn=`basename $$f` ; \
+		if ${GREP} "^$$f " $*.www_files >/dev/null ; then \
+			echo "$$f already recorded" ; \
+		elif test "`dirname $$f`" != "." ; then \
+			echo "$$f is not in this directory, skipping" ; \
+		else \
+			echo "recording file $$f (./$$fn)" ; \
+			echo "$$f ./$$fn" >> $*.www_files ; \
+		fi ;\
+	done
+endif
+ifdef USE_HEVEA
+	for f in `${AWK} '{print $$1}' $*.www_files` ; do \
+		${ECHO} "Moving $$f to $*.html_dir" ; mv $$f $*.html_dir ; \
+	done
+endif
+	mv $@1 $@
+
+#######################################
+#
+# Postscript Output (dvips)
+#
+#######################################
+.PHONY:  ps
+
+# if we're doing a *-draft target, then add the
+# DRAFT watermark and time stamp
+ifeq ($(findstring -draft,${MAKECMDGOALS}),-draft)
+__DRAFT=	yes
+endif
+
+.dvi.ps :
+ifdef __DRAFT
+	sed "s;DATE;`date`;g" ${DATED_DRAFT_PS} > ${DRAFT_STAMP_PS}
+	${ENV_PROG} ${DVIPS_ENV} $(DVIPS) -h ${DRAFT_STAMP_PS} ${$*_DVIPS_FLAGS} $(DVIPS_FLAGS) -o $*-draft.ps $<
+else
+	${ENV_PROG} ${DVIPS_ENV} $(DVIPS) ${$*_DVIPS_FLAGS} $(DVIPS_FLAGS) -o $@ $<
+endif
+
+#######################################
+#
+# PDF Output (ps2pdf)
+#
+#######################################
+.PHONY:  pdf
+
+ifdef USE_DVIPDFM
+.dvi.pdf :
+	$(ENV_PROG) $(DVIPDFM_ENV) $(DVIPDFM) ${$*_DVIPDFM_FLAGS} $(DVIPDFM_FLAGS) $<
+else
+ifdef USE_PDFLATEX
+.tex.pdf :
+	$(ENV_PROG) $(REAL_PDFLATEX_ENV) $(LATEX_MK) --pdflatex $(LATEX_MK_FLAGS) $<
+else
+.ps.pdf :
+	$(PS2PDF) $(PS2PDF_FLAGS) $<
+endif
+endif
+
+#######################################
+#
+# RTF (Rich Text Format) output (latex2rtf)
+#
+#######################################
+.PHONY:  rtf
+
+.dvi.rtf :
+	$(ENV_PROG) $(LATEX2RTF_ENV) $(LATEX2RTF) $(LATEX2RTF_FLAGS) -o $@ $*.tex
+
+#######################################
+#
+# Clean up (clean)
+#
+#######################################
+CLEAN_FILES+=	${ALLTEXSRCS:.tex=.aux}
+CLEAN_FILES+=	${BIBTEXSRCS:.bib=.aux}
+CLEAN_FILES+=	${NAME:=.ps}
+CLEAN_FILES+=	${NAME:=-draft.ps}
+CLEAN_FILES+=	${NAME:=.pdf}
+CLEAN_FILES+=	${NAME:=-draft.pdf}
+CLEAN_FILES+=	${NAME:=.rtf}
+CLEAN_FILES+=	${NAME:=.aux}
+CLEAN_FILES+=	${NAME:=.log}
+CLEAN_FILES+=	${NAME:=.dvi}
+CLEAN_FILES+=	${NAME:=.log}
+CLEAN_FILES+=	${NAME:=.bbl}
+CLEAN_FILES+=	${NAME:=.blg}
+CLEAN_FILES+=	${NAME:=.glo}
+CLEAN_FILES+=	${NAME:=.gls}
+CLEAN_FILES+=	${NAME:=.ilg}
+CLEAN_FILES+=	${NAME:=.idx}
+CLEAN_FILES+=	${NAME:=.ind}
+CLEAN_FILES+=	${NAME:=.lof}
+CLEAN_FILES+=	${NAME:=.lot}
+CLEAN_FILES+=	${NAME:=.toc}
+CLEAN_FILES+=	${NAME:=.out}
+CLEAN_FILES+=	$(DRAFT_STAMP_PS)
+CLEAN_FILES+=	${NAME:=.bib-stamp}
+
+# HTML generation
+CLEAN_FILES+=	${NAME:=.html-stamp}
+CLEAN_FILES+=	${NAME:=.www_files}
+
+ifdef USE_HEVEA
+CLEAN_FILES+=	${NAME:=.haux}
+CLEAN_FILES+=	${NAME:=.image.tex}
+endif
+
+ifdef USE_LATEX2HTML
+CLEAN_FILES+=	${NAME:=.haux}
+CLEAN_FILES+=	${NAME:=.image.tex}
+endif
+
+
+ifdef USE_TEX2PAGE
+CLEAN_FILES+=	${NAME:=.hdir}
+endif
+
+
+.PHONY: clean
+
+define latex_mk_clean_template
+clean::
+	${LATEX_MK} --clean $(1)
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call latex_mk_clean_template,$(__tmp__))))
+
+clean::
+	$(RM) -f *~ texput.log $(CLEAN_FILES)
+
+.PHONY: distclean
+distclean: clean
+
+#######################################
+#
+# Some helpful debugging targets
+#
+#######################################
+.PHONY: show-var
+show-var:
+	@${ECHO} ${${VARNAME}}

@@ -1,0 +1,203 @@
+# -*- Makefile -*-
+# $Id: lgrind.mk.in.in,v 1.7 2010/09/21 12:14:58 dan Exp $
+#
+# Makefile fragment for processing lgrind files to produce postscript
+#
+# Copyright (c) 2005, 2010 Dan McMahill
+#
+# Copyright (c) 2005 Peter Bex
+# All rights reserved.
+#
+# This code is derived from software written by Dan McMahill
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+# 3. All advertising materials mentioning features or use of this software
+#    must display the following acknowledgement:
+#        This product includes software developed by Dan McMahill
+#  4. The name of the author may not be used to endorse or promote products
+#     derived from this software without specific prior written permission.
+# 
+#  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+#  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+#  IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+#  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+#  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+#  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+#  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+#  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#  SUCH DAMAGE.
+#
+
+
+#######################################
+#
+# TODO:
+# - Add a way to deal with specifying the language on a per-file
+#   or maybe per-directory basis.  Maybe per-directory is a good
+#   start.
+#
+# - Add support for files with no extension.  Need to make sure
+#   we don't have problems with CVS/ directories.  In fact, we
+#   need to make sure we don't have issues with foo.bar directories.
+#
+# - Add support for inline lgrind sources using the %(...)% notation
+#
+# README:
+#
+# To use this makefile fragment, set the variable:
+#	LGRINDSRCS	= the source files to process
+# in your top level Makefile.  You can also specify
+# LGRINDDIRS which is a list of directories containing
+# source files.  All source files in the specified directories
+# are added to LGRINDSRCS
+#
+# The following variables may be overridden in your top level Makefile
+#
+#  LGRIND	= the lgrind executable
+#  LGRIND_FLAGS	= flags passed to lgrind for exporting to tex
+#
+#######################################
+
+
+# how to call lgrind to convert source files to TeX
+LGRIND?=	lgrind
+LGRIND_FLAGS?=	-i
+
+#######################################
+#
+# Process LGRINDDIRS, adding to LGRINDSRCS
+#
+#######################################
+
+# pick out $(LGRINDDIRS)/*.* except for *.tex for each
+# specified directory.  This is how we will
+# deal with basically any source code file type.  The
+# exception will be things like Makefiles which do not
+# have an extension usually.
+
+# While we're processing these directories, check for a directory
+# specific LGRIND_FLAGS (i.e. mydir_LGRIND_FLAGS).  If it is defined
+# then assign it to the file specific lgrind flags for each source
+# file if the source file does not already have its own file specific
+# flags
+
+
+
+define lgrinddir_flag_template
+$(1)_LGRIND_FLAGS?=	$($(2)_LGRIND_FLAGS)
+endef
+
+define lgrindsrcs_add_template
+LGRINDSRCS+=	${_LGRIND_ADD_$(1)}
+ifdef $(1)_LGRIND_FLAGS
+$(foreach __tmp2__,$(_LGRIND_ADD_$(1)),$(eval $(call lgrinddir_flag_template,$(__tmp2__),$(1))))
+endif
+endef
+
+define lgrinddirs_template
+_LGRIND_ADD_$(1)=	$(filter-out %.tex,$(wildcard $(1)/*.*))
+endef
+$(foreach __tmp__,$(LGRINDDIRS),$(eval $(call lgrinddirs_template,$(__tmp__))))
+$(foreach __tmp__,$(LGRINDDIRS),$(eval $(call lgrindsrcs_add_template,$(__tmp__))))
+
+
+#######################################
+#
+# Process proj_LGRINDDIRS, adding to proj_LGRINDSRCS
+#
+#######################################
+
+
+
+define proj_lgrindsrcs_add_template
+$(2)_LGRINDSRCS+=	${_LGRIND_ADD2_$(1)}
+ifdef $(1)_LGRIND_FLAGS
+$(foreach __tmp2__,$(_LGRIND_ADD2_$(1)),$(eval $(call lgrinddir_flag_template,$(__tmp2__),$(1))))
+endif
+endef
+
+define proj_lgrinddirs_template
+_LGRIND_ADD2_$(1)=	$(filter-out %.tex,$(wildcard $(1)/*.*))
+endef
+
+define proj_lgrind_template
+ifdef $(1)_LGRINDDIRS
+$(foreach __tmp2__,$($(1)_LGRINDDIRS),$(eval $(call proj_lgrinddirs_template,$(__tmp2__))))
+$(foreach __tmp2__,$($(1)_LGRINDDIRS),$(eval $(call proj_lgrindsrcs_add_template,$(__tmp2__),$(1))))
+endif
+$(1)_DIST+=	$($(1)_LGRINDSRCS) $(LGRINDSRCS)
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call proj_lgrind_template,$(__tmp__))))
+
+
+#######################################
+# 
+# Process proj_LGRINDSRCS to add to
+# prog_OTHER dependencies
+#
+#######################################
+
+LGRINDOBJS?=	$(LGRINDSRCS:=.tex)
+ALLLGRINDOBJS+=	$(LGRINDOBJS)
+
+
+# note, this had to be done in two steps (create proj_LGRINDOBJS,
+# and then add to proj_OTHER and ALLLGRINDOBJS) with GNU make 3.80
+# don't really know why.
+define lgrindobjs_template
+ifdef $(1)_LGRINDSRCS
+$(1)_LGRINDOBJS?=	${$(1)_LGRINDSRCS:=.tex}
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call lgrindobjs_template,$(__tmp__))))
+
+define lgrinddeps_template
+ifdef $(1)_LGRINDSRCS
+$(1)_OTHER+=	${$(1)_LGRINDOBJS}
+ALLLGRINDOBJS+=	${$(1)_LGRINDOBJS}
+endif
+endef
+$(foreach __tmp__,$(NAME),$(eval $(call lgrinddeps_template,$(__tmp__))))
+
+
+#######################################
+# 
+# Add the dependencies
+#
+#######################################
+
+
+OTHER+=	$(LGRINDOBJS)
+all::		$(ALLLGRINDOBJS)
+
+clean::
+	$(RM) -f $(ALLLGRINDOBJS)
+
+
+#######################################
+#
+# And add the build rules.
+# 
+# Note that we do this as a loop with explicit
+# rules for each file rather than a suffix
+# rule because we want to work on any input 
+# file that lgrind can deal with
+#
+#######################################
+
+
+define lgrindrun_template
+$(1): $(1:.tex=)
+	$(LGRIND) $(LGRIND_FLAGS) $($(1:.tex=)_LGRIND_FLAGS) -o $(1) $(1:.tex=)
+endef
+$(foreach __tmp__,$(ALLLGRINDOBJS),$(eval $(call lgrindrun_template,$(__tmp__))))
+
