@@ -9,7 +9,7 @@ download it here:
 http://github.com/downloads/kroger/python-quick-ref/python-quick-ref.pdf
 
 
-# Tanks
+# Thanks
 
 Sarabander made some adjustments in typesetting and color, used a
 vector graphics for the Python logo and fixed the URL.
